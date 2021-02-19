@@ -185,6 +185,8 @@ def generate_builders():
                     return ["-V", "MKLLVM=yes", "-V", "HAVE_LLVM=yes", "-V", "MKGCC=no"]
                 if buildtype == "lint":
                     return ["-V", "MKLINT=yes"]
+                if buildtype == "RELEASE":
+                    return ["-V", "NETBSD_OFFICIAL_RELEASE=yes"]
                 return []
 
             return (["./wrapper.sh",
@@ -258,7 +260,7 @@ def generate_builders():
                 ))
         arch = target[TARGET_ARCH]
         machine = target[TARGET_MACHINE]
-        build_name = arch + "-" + machine + "-" + buildtype + "-" + branchname
+        build_name = arch + "_" + machine + "_" + buildtype + "_" + branchname
         tags = [arch]
         if buildtype != "":
             tags.append(buildtype)
@@ -268,29 +270,16 @@ def generate_builders():
         return util.BuilderConfig(name=build_name,
                                   workernames=["worker1"],
                                   factory=factory,
-                                  tags=tags)
+                                  tags=tags), build_name
 
-    def to_builder_8(target):
-        return to_builder(target, buildtype="", branchname="netbsd-8")
-    def to_builder_9(target):
-        return to_builder(target, buildtype="", branchname="netbsd-9")
-    def to_builder_HEAD(target):
-        return to_builder(target, buildtype="", branchname="trunk")
-    def to_builder_HEAD_llvm(target):
-        return to_builder(target, buildtype="LLVM", branchname="trunk")
-    def to_builder_HEAD_lint(target):
-        return to_builder(target, buildtype="lint", branchname="trunk")
+    llvm_builders = [to_builder(target, buildtype="LLVM", branchname="trunk") for target in targets if is_llvm_target(target)]
+    lint_builders = [to_builder(target, buildtype="lint", branchname="trunk") for target in targets if is_lint_target(target)]
+    netbsd_8_builders = [to_builder(target, buildtype="", branchname="netbsd-8") for target in targets if is_8_target(target)]
+    netbsd_8_RELEASE_builders = [to_builder(target, buildtype="RELEASE", branchname="netbsd-8") for target in targets if is_8_target(target)]
+    netbsd_9_builders = [to_builder(target, buildtype="", branchname="netbsd-9") for target in targets if is_9_target(target)]
+    netbsd_9_RELEASE_builders = [to_builder(target, buildtype="RELEASE", branchname="netbsd-9") for target in targets if is_9_target(target)]
+    netbsd_HEAD_builders = [to_builder(target, buildtype="", branchname="HEAD") for target in targets if is_HEAD_target(target)]
 
-    llvm_targets = filter(is_llvm_target, targets)
-    lint_targets = filter(is_lint_target, targets)
-    netbsd_8_targets = filter(is_8_target, targets)
-    netbsd_9_targets = filter(is_9_target, targets)
-    netbsd_HEAD_targets = filter(is_HEAD_target, targets)
-
-    llvm_builders = list(map(to_builder_HEAD_llvm, llvm_targets))
-    lint_builders = list(map(to_builder_HEAD_lint, lint_targets))
-    netbsd_8_builders = list(map(to_builder_8, netbsd_8_targets))
-    netbsd_9_builders = list(map(to_builder_9, netbsd_9_targets))
-    netbsd_HEAD_builders = list(map(to_builder_HEAD, netbsd_HEAD_targets))
-
-    return llvm_builders + lint_builders + netbsd_8_builders + netbsd_9_builders + netbsd_HEAD_builders
+    return (llvm_builders + lint_builders + netbsd_HEAD_builders +
+            netbsd_8_builders + netbsd_8_RELEASE_builders +
+            netbsd_9_builders + netbsd_9_RELEASE_builders)
