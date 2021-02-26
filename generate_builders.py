@@ -188,10 +188,14 @@ def to_builder(targets, buildtype, branchname):
                 return ["-V", "NETBSD_OFFICIAL_RELEASE=yes"]
             return []
 
-        return (["./wrapper.sh",
+        return " ".join(["../src/build.sh",
+                 "-j", "$(/sbin/sysctl -n hw.ncpuonline)",
+                 "-B", "$(date -r $(cd ../src; git show -s --format=%ct) +%Y%m%d%H%MZ)",
+                 "-R", "../releasedir",
                  "-U", "-P", "-N0", "-V", "TMPDIR=/tmp",
                  "-V", "MKDEBUG=yes", "-V", "BUILD=yes"]
-                + x_flags(target) + target_flags(target) + buildtype_flags(buildtype) + build_target(target, branchname))
+                + x_flags(target) + target_flags(target) +
+                buildtype_flags(buildtype) + build_target(target, branchname))
 
     factory = util.BuildFactory()
     factory.addStep(steps.Git(
@@ -214,6 +218,15 @@ def to_builder(targets, buildtype, branchname):
                 retry=(5, 3),
                 workdir="xsrc"
             ))
+    factory.addStep(steps.ShellCommand(
+                haltOnFailure=True,
+                logEnviron=False,
+                name="clean releasedir before",
+                description="cleaning release directory - before",
+                descriptionDone="clean releasedir",
+                command=["rm", "-rf", "../releasedir"]
+            ))
+
     for target in targets:
         if target[TARGET_MACHINE] != "":
             target_name = target[TARGET_MACHINE]
@@ -227,24 +240,6 @@ def to_builder(targets, buildtype, branchname):
                     description="cleaning obj directory - before",
                     descriptionDone="clean obj",
                     command=["rm", "-rf", "../build"]
-                ))
-        factory.addStep(steps.ShellCommand(
-                    haltOnFailure=True,
-                    logEnviron=False,
-                    name="fetch wrapper",
-                    description="fetch wrapper",
-                    descriptionDone="fetched wrapper",
-                    command=["ftp", "https://raw.githubusercontent.com/coypoop/wrapper/main/wrapper.sh"],
-                    workdir="build"
-                ))
-        factory.addStep(steps.ShellCommand(
-                    haltOnFailure=True,
-                    logEnviron=False,
-                    name="chmod wrapper",
-                    description="chmod wrapper",
-                    descriptionDone="chmodded wrapper",
-                    command=["chmod", "+x", "wrapper.sh"],
-                    workdir="build"
                 ))
         factory.addStep(steps.ShellCommand(
                     haltOnFailure=False,
@@ -264,7 +259,7 @@ def to_builder(targets, buildtype, branchname):
                     command=["rm", "-rf", "../build"]
                 ))
 
-    build_name = buildtype + "_" + branchname
+    build_name = branchname + "-" + buildtype
     tags = [buildtype, branchname]
 
     return util.BuilderConfig(name=build_name,
