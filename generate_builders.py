@@ -1,224 +1,229 @@
 import datetime
 from buildbot.plugins import *
 
-def generate_builders():
-    builders = []
-    targets = [
-                ( "acorn32", "" ),
-                ( "algor", "" ),
-                ( "alpha", "" ),
-                ( "amd64", "" ),
-                ( "amiga", "" ),
-                ( "amigappc", "" ),
-                ( "arc", "" ),
-                ( "atari", "" ),
-                ( "bebox", "" ),
-                ( "cats", "" ),
-                ( "cesfic", "" ),
-                ( "cobalt", "" ),
-                ( "dreamcast", "" ),
-                ( "emips", "" ),
-                ( "epoc32", "" ),
-                ( "evbarm", "aarch64" ),
-                ( "evbarm", "aarch64eb" ),
-                ( "evbarm", "earm" ),
-                ( "evbarm", "earmeb" ),
-                ( "evbarm", "earmhf" ),
-                ( "evbarm", "earmhfeb" ),
-                ( "evbarm", "earmv5" ),
-                ( "evbarm", "earmv5eb" ),
-                ( "evbarm", "earmv5hf" ),
-                ( "evbarm", "earmv5hfeb" ),
-                ( "evbarm", "earmv6hf" ),
-                ( "evbarm", "earmv6hfeb" ),
-                ( "evbarm", "earmv7hf" ),
-                ( "evbarm", "earmv7hfeb" ),
-                ( "evbmips", "mips64eb" ),
-                ( "evbmips", "mips64el" ),
-                ( "evbmips", "mipseb" ),
-                ( "evbmips", "mipsel" ),
-                ( "evbppc", "" ),
-                ( "evbppc", "powerpc64" ),
-                ( "evbsh3", "sh3eb" ),
-                ( "evbsh3", "sh3el" ),
-                ( "ews4800mips", "" ),
-                ( "hp300", "" ),
-                ( "hpcarm", "" ),
-                ( "hpcmips", "" ),
-                ( "hpcsh", "" ),
-                ( "hppa", "" ),
-                ( "i386", "" ),
-                ( "ia64", "" ),
-                ( "ibmnws", "" ),
-                ( "iyonix", "" ),
-                ( "landisk", "" ),
-                ( "luna68k", "" ),
-                ( "mac68k", "" ),
-                ( "macppc", "" ),
-                ( "mipsco", "" ),
-                ( "mmeye", "" ),
-                ( "mvme68k", "" ),
-                ( "mvmeppc", "" ),
-                ( "netwinder", "" ),
-                ( "news68k", "" ),
-                ( "newsmips", "" ),
-                ( "next68k", "" ),
-                ( "ofppc", "" ),
-                ( "pmax", "" ),
-                ( "prep", "" ),
-                ( "rs6000", "" ),
-                ( "sandpoint", "" ),
-                ( "sgimips", "" ),
-                ( "shark", "" ),
-                ( "sparc64", "" ),
-                ( "sparc", "" ),
-                ( "sun2", "" ),
-                ( "sun3", "" ),
-                ( "vax", "" ),
-                ( "x68k", "" ),
-                ( "zaurus", "" ),
-    ]
-    TARGET_ARCH = 0
-    TARGET_MACHINE = 1
+builders = []
+targets = [
+#            ( "acorn32", "" ),
+#            ( "algor", "" ),
+#            ( "alpha", "" ),
+#            ( "amd64", "" ),
+#            ( "amiga", "" ),
+#            ( "amigappc", "" ),
+#            ( "arc", "" ),
+#            ( "atari", "" ),
+#            ( "bebox", "" ),
+#            ( "cats", "" ),
+#            ( "cesfic", "" ),
+#            ( "cobalt", "" ),
+#            ( "dreamcast", "" ),
+#            ( "emips", "" ),
+#            ( "epoc32", "" ),
+#            ( "evbarm", "aarch64" ),
+#            ( "evbarm", "aarch64eb" ),
+#            ( "evbarm", "earm" ),
+#            ( "evbarm", "earmeb" ),
+#            ( "evbarm", "earmhf" ),
+#            ( "evbarm", "earmhfeb" ),
+#            ( "evbarm", "earmv5" ),
+#            ( "evbarm", "earmv5eb" ),
+#            ( "evbarm", "earmv5hf" ),
+#            ( "evbarm", "earmv5hfeb" ),
+#            ( "evbarm", "earmv6hf" ),
+#            ( "evbarm", "earmv6hfeb" ),
+#            ( "evbarm", "earmv7hf" ),
+#            ( "evbarm", "earmv7hfeb" ),
+#            ( "evbmips", "mips64eb" ),
+#            ( "evbmips", "mips64el" ),
+#            ( "evbmips", "mipseb" ),
+#            ( "evbmips", "mipsel" ),
+#            ( "evbppc", "" ),
+#            ( "evbppc", "powerpc64" ),
+#            ( "evbsh3", "sh3eb" ),
+#            ( "evbsh3", "sh3el" ),
+#            ( "ews4800mips", "" ),
+#            ( "hp300", "" ),
+#            ( "hpcarm", "" ),
+#            ( "hpcmips", "" ),
+#            ( "hpcsh", "" ),
+#            ( "hppa", "" ),
+            ( "i386", "" ),
+#            ( "ia64", "" ),
+#            ( "ibmnws", "" ),
+#            ( "iyonix", "" ),
+#            ( "landisk", "" ),
+#            ( "luna68k", "" ),
+#            ( "mac68k", "" ),
+#            ( "macppc", "" ),
+#            ( "mipsco", "" ),
+#            ( "mmeye", "" ),
+#            ( "mvme68k", "" ),
+#            ( "mvmeppc", "" ),
+#            ( "netwinder", "" ),
+#            ( "news68k", "" ),
+#            ( "newsmips", "" ),
+#            ( "next68k", "" ),
+#            ( "ofppc", "" ),
+#            ( "pmax", "" ),
+#            ( "prep", "" ),
+#            ( "rs6000", "" ),
+#            ( "sandpoint", "" ),
+#            ( "sgimips", "" ),
+#            ( "shark", "" ),
+#            ( "sparc64", "" ),
+#            ( "sparc", "" ),
+            ( "sun2", "" ),
+#            ( "sun3", "" ),
+#            ( "vax", "" ),
+#            ( "x68k", "" ),
+#            ( "zaurus", "" ),
+]
+TARGET_ARCH = 0
+TARGET_MACHINE = 1
 
-    def is_lint_target(target):
-        arch = target[TARGET_ARCH]
-        if (arch == "amd64" or
-            arch == "i386" or
-            arch == "sparc64" or
-            arch == "sparc"):
-           return True
-        return False
+def is_lint_target(target):
+    arch = target[TARGET_ARCH]
+    if (arch == "amd64" or
+        arch == "i386" or
+        arch == "sparc64" or
+        arch == "sparc"):
+       return True
+    return False
 
-    def is_llvm_target(target):
-        arch = target[TARGET_ARCH]
-        machine = target[TARGET_MACHINE]
-        if (arch == "amd64" or
-            arch == "i386" or
-            arch == "sparc64" or
-            arch == "sparc" or
-            arch == "macppc" or
-            arch == "evbppc" or
-            machine == "aarch64" or
-            machine == "earmv6hf"):
-            return True
-        return False
-
-    def target_in_branch(target, branch):
-        arch = target[TARGET_ARCH]
-        machine = target[TARGET_MACHINE]
-        if (machine == "aarch64"):
-            return (branch >= 9)
-        if (machine == "aarch64eb"):
-            return (branch >= 10)
-        if (machine == "earm" or
-            machine == "earmeb"):
-            return (branch < 10)
-        if (machine == "earmhf" or
-            machine == "earmhfeb"):
-            return (branch == 9)
-        if arch == "ia64":
-            return (branch >= 9)
-        if machine == "powerpc64":
-            return (branch >= 9)
-        if (machine == "earmv5" or
-            machine == "earmv5eb" or
-            machine == "earmv5" or
-            machine == "earmv5hf" or
-            machine == "earmv5hfeb" or
-            machine == "earmv5hfeb"):
-            return (branch >= 10)
-        if (machine == "earmv6hfeb"):
-            return (branch >= 10)
+def is_llvm_target(target):
+    arch = target[TARGET_ARCH]
+    machine = target[TARGET_MACHINE]
+    if (arch == "amd64" or
+        arch == "i386" or
+        arch == "sparc64" or
+        arch == "sparc" or
+        arch == "macppc" or
+        arch == "evbppc" or
+        machine == "aarch64" or
+        machine == "earmv6hf"):
         return True
+    return False
 
-    def is_8_target(target):
-        return target_in_branch(target, 8)
-    def is_9_target(target):
-        return target_in_branch(target, 9)
-    def is_HEAD_target(target):
-        return target_in_branch(target, 10)
+def target_in_branch(target, branch):
+    arch = target[TARGET_ARCH]
+    machine = target[TARGET_MACHINE]
+    if (machine == "aarch64"):
+        return (branch >= 9)
+    if (machine == "aarch64eb"):
+        return (branch >= 10)
+    if (machine == "earm" or
+        machine == "earmeb"):
+        return (branch < 10)
+    if (machine == "earmhf" or
+        machine == "earmhfeb"):
+        return (branch == 9)
+    if arch == "ia64":
+        return (branch >= 9)
+    if machine == "powerpc64":
+        return (branch >= 9)
+    if (machine == "earmv5" or
+        machine == "earmv5eb" or
+        machine == "earmv5" or
+        machine == "earmv5hf" or
+        machine == "earmv5hfeb" or
+        machine == "earmv5hfeb"):
+        return (branch >= 10)
+    if (machine == "earmv6hfeb"):
+        return (branch >= 10)
+    return True
 
-    def to_builder(target, buildtype, branchname):
-        def build_target(target, branchname):
+def is_8_target(target):
+    return target_in_branch(target, 8)
+def is_9_target(target):
+    return target_in_branch(target, 9)
+def is_HEAD_target(target):
+    return target_in_branch(target, 10)
+
+def to_builder(targets, buildtype, branchname):
+    def build_target(target, branchname):
+        arch = target[TARGET_ARCH]
+        machine = target[TARGET_MACHINE]
+        if (arch == "evbarm" and
+            branchname == "HEAD"):
+            if (machine == "aarch64" or
+                machine == "aarch64eb"):
+                return ["release", "install-image", "iso-image"]
+            if (machine == "earmv7hf" or
+                machine == "earmv7hfeb"):
+                return ["release", "install-image"]
+            return ["release"]
+        if (arch == "mac68k"):
+            return ["release"]
+        if (arch == "i386"):
+            return ["release", "iso-image", "install-image"]
+        if (arch == "amd64"):
+            if (branchname == "HEAD"):
+                return ["release", "iso-image", "install-image", "live-image"]
+            return ["release", "iso-image", "install-image"]
+        return ["release", "iso-image"]
+
+    def build_command(target, buildtype):
+        def x_flags(target):
+            arch = target[TARGET_ARCH]
+            if (arch == "evbppc" or
+                arch == "rs6000" or
+                arch == "sun2"):
+                return []
+            return ["-x"]
+
+        def target_flags(target):
             arch = target[TARGET_ARCH]
             machine = target[TARGET_MACHINE]
-            if (arch == "evbarm" and
-                branchname == "HEAD"):
-                if (machine == "aarch64" or
-                    machine == "aarch64eb"):
-                    return ["release", "install-image", "iso-image"]
-                if (machine == "earmv7hf" or
-                    machine == "earmv7hfeb"):
-                    return ["release", "install-image"]
-                return ["release"]
-            if (arch == "mac68k"):
-                return ["release"]
-            if (arch == "i386"):
-                return ["release", "iso-image", "install-image"]
-            if (arch == "amd64"):
-                if (branchname == "HEAD"):
-                    return ["release", "iso-image", "install-image", "live-image"]
-                return ["release", "iso-image", "install-image"]
-            return ["release", "iso-image"]
 
-        def build_command(target, buildtype):
-            def x_flags(target):
-                arch = target[TARGET_ARCH]
-                if (arch == "evbppc" or
-                    arch == "rs6000" or
-                    arch == "sun2"):
-                    return []
-                return ["-x"]
+            target_string = ["-m", arch]
+            if machine != "":
+                target_string = target_string + ["-a", machine]
+            return target_string
 
-            def target_flags(target):
-                arch = target[TARGET_ARCH]
-                machine = target[TARGET_MACHINE]
+        def buildtype_flags(buildtype):
+            if buildtype == "LLVM":
+                return ["-V", "MKLLVM=yes", "-V", "HAVE_LLVM=yes", "-V", "MKGCC=no"]
+            if buildtype == "lint":
+                return ["-V", "MKLINT=yes"]
+            if buildtype == "RELEASE":
+                return ["-V", "NETBSD_OFFICIAL_RELEASE=yes"]
+            return []
 
-                target_string = ["-m", arch]
-                if machine != "":
-                    target_string = target_string + ["-a", machine]
-                return target_string
+        return (["./wrapper.sh",
+                 "-U", "-P", "-N0", "-V", "TMPDIR=/tmp",
+                 "-V", "MKDEBUG=yes", "-V", "BUILD=yes"]
+                + x_flags(target) + target_flags(target) + buildtype_flags(buildtype) + build_target(target, branchname))
 
-            def buildtype_flags(buildtype):
-                if buildtype == "LLVM":
-                    return ["-V", "MKLLVM=yes", "-V", "HAVE_LLVM=yes", "-V", "MKGCC=no"]
-                if buildtype == "lint":
-                    return ["-V", "MKLINT=yes"]
-                if buildtype == "RELEASE":
-                    return ["-V", "NETBSD_OFFICIAL_RELEASE=yes"]
-                return []
+    factory = util.BuildFactory()
+    factory.addStep(steps.Git(
+                haltOnFailure=True,
+                logEnviron=False,
+                repourl='https://github.com/netbsd/src.git',
+                branch=branchname,
+                mode='incremental',
+                codebase='src',
+                retry=(5, 3),
+                workdir="src"
+            ))
+    factory.addStep(steps.Git(
+                haltOnFailure=True,
+                logEnviron=False,
+                repourl='https://github.com/netbsd/xsrc.git',
+                branch=branchname,
+                mode='incremental',
+                codebase='xsrc',
+                retry=(5, 3),
+                workdir="xsrc"
+            ))
+    for target in targets:
+        if target[TARGET_MACHINE] != "":
+            target_name = target[TARGET_MACHINE]
+        else:
+            target_name = target[TARGET_ARCH]
 
-            return (["./wrapper.sh",
-                     "-U", "-P", "-N0", "-V", "TMPDIR=/tmp",
-                     "-V", "MKDEBUG=yes", "-V", "BUILD=yes"]
-                    + x_flags(target) + target_flags(target) + buildtype_flags(buildtype) + build_target(target, branchname))
-
-        factory = util.BuildFactory()
-        factory.addStep(steps.Git(
-                    haltOnFailure=True,
-                    logEnviron=False,
-                    repourl='https://github.com/netbsd/src.git',
-                    branch=branchname,
-                    mode='incremental',
-                    codebase='src',
-                    retry=(5, 3),
-                    workdir="src"
-                ))
-        factory.addStep(steps.Git(
-                    haltOnFailure=True,
-                    logEnviron=False,
-                    repourl='https://github.com/netbsd/xsrc.git',
-                    branch=branchname,
-                    mode='incremental',
-                    codebase='xsrc',
-                    retry=(5, 3),
-                    workdir="xsrc"
-                ))
         factory.addStep(steps.ShellCommand(
                     haltOnFailure=True,
                     logEnviron=False,
-                    name="clean-obj-before",
+                    name="clean obj before " + target_name,
                     description="cleaning obj directory - before",
                     descriptionDone="clean obj",
                     command=["rm", "-rf", "../build"]
@@ -226,7 +231,7 @@ def generate_builders():
         factory.addStep(steps.ShellCommand(
                     haltOnFailure=True,
                     logEnviron=False,
-                    name="fetch-wrapper",
+                    name="fetch wrapper",
                     description="fetch wrapper",
                     descriptionDone="fetched wrapper",
                     command=["ftp", "https://raw.githubusercontent.com/coypoop/wrapper/main/wrapper.sh"],
@@ -235,7 +240,7 @@ def generate_builders():
         factory.addStep(steps.ShellCommand(
                     haltOnFailure=True,
                     logEnviron=False,
-                    name="chmod-wrapper",
+                    name="chmod wrapper",
                     description="chmod wrapper",
                     descriptionDone="chmodded wrapper",
                     command=["chmod", "+x", "wrapper.sh"],
@@ -244,7 +249,7 @@ def generate_builders():
         factory.addStep(steps.ShellCommand(
                     haltOnFailure=False,
                     logEnviron=False,
-                    name="build",
+                    name="build " + target_name,
                     description="building src",
                     descriptionDone="build done",
                     command=build_command(target, buildtype),
@@ -253,33 +258,59 @@ def generate_builders():
         factory.addStep(steps.ShellCommand(
                     haltOnFailure=True,
                     logEnviron=False,
-                    name="clean-obj-after",
+                    name="clean obj after " + target_name,
                     description="cleaning obj directory - after",
                     descriptionDone="clean obj",
                     command=["rm", "-rf", "../build"]
                 ))
-        arch = target[TARGET_ARCH]
-        machine = target[TARGET_MACHINE]
-        build_name = arch + "_" + machine + "_" + buildtype + "_" + branchname
-        tags = [arch]
-        if buildtype != "":
-            tags.append(buildtype)
-        if machine != "":
-            tags.append(machine)
 
-        return util.BuilderConfig(name=build_name,
-                                  workernames=["worker1"],
-                                  factory=factory,
-                                  tags=tags), build_name
+    build_name = buildtype + "_" + branchname
+    tags = [buildtype, branchname]
 
-    llvm_builders = [to_builder(target, buildtype="LLVM", branchname="trunk") for target in targets if is_llvm_target(target)]
-    lint_builders = [to_builder(target, buildtype="lint", branchname="trunk") for target in targets if is_lint_target(target)]
-    netbsd_8_builders = [to_builder(target, buildtype="", branchname="netbsd-8") for target in targets if is_8_target(target)]
-    netbsd_8_RELEASE_builders = [to_builder(target, buildtype="RELEASE", branchname="netbsd-8") for target in targets if is_8_target(target)]
-    netbsd_9_builders = [to_builder(target, buildtype="", branchname="netbsd-9") for target in targets if is_9_target(target)]
-    netbsd_9_RELEASE_builders = [to_builder(target, buildtype="RELEASE", branchname="netbsd-9") for target in targets if is_9_target(target)]
-    netbsd_HEAD_builders = [to_builder(target, buildtype="", branchname="HEAD") for target in targets if is_HEAD_target(target)]
+    return util.BuilderConfig(name=build_name,
+                              workernames=["worker1"],
+                              factory=factory,
+                              tags=tags), build_name
 
-    return (llvm_builders + lint_builders + netbsd_HEAD_builders +
-            netbsd_8_builders + netbsd_8_RELEASE_builders +
-            netbsd_9_builders + netbsd_9_RELEASE_builders)
+def generate_stable_builders():
+    netbsd_8_builder = to_builder(
+            [target for target in targets if is_8_target(target)],
+            buildtype="regular",
+            branchname="netbsd-8")
+    netbsd_9_builder = to_builder(
+            [target for target in targets if is_9_target(target)],
+            buildtype="regular",
+            branchname="netbsd-9")
+
+    return [netbsd_8_builder, netbsd_9_builder]
+
+
+def generate_head_builders():
+    llvm_builder = to_builder(
+            [target for target in targets if is_llvm_target(target)],
+            buildtype="LLVM",
+            branchname="HEAD")
+    lint_builder = to_builder(
+            [target for target in targets if is_lint_target(target)],
+            buildtype="lint",
+            branchname="HEAD")
+    HEAD_builder = to_builder(
+            [target for target in targets if is_HEAD_target(target)],
+            buildtype="regular",
+            branchname="HEAD")
+
+    return [llvm_builder, lint_builder, HEAD_builder]
+
+def generate_release_builders():
+    netbsd_8_RELEASE_builder = to_builder(
+            [target for target in targets if is_8_target(target)],
+            buildtype="RELEASE",
+            branchname="netbsd-8")
+    netbsd_9_RELEASE_builder = to_builder(
+            [target for target in targets if is_9_target(target)],
+            buildtype="RELEASE",
+            branchname="netbsd-9")
+
+    return [netbsd_8_RELEASE_builder, netbsd_9_RELEASE_builder]
+
+
