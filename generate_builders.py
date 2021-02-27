@@ -1,7 +1,9 @@
 import datetime
 from buildbot.plugins import *
 
-builders = []
+build_lock = util.WorkerLock("worker_builds",
+                             maxCount=9999)
+
 targets = [
 #            ( "acorn32", "" ),
 #            ( "algor", "" ),
@@ -71,7 +73,7 @@ targets = [
 #            ( "shark", "" ),
 #            ( "sparc64", "" ),
 #            ( "sparc", "" ),
-            ( "sun2", "" ),
+#            ( "sun2", "" ),
 #            ( "sun3", "" ),
 #            ( "vax", "" ),
 #            ( "x68k", "" ),
@@ -100,6 +102,20 @@ def is_llvm_target(target):
         arch == "evbppc" or
         machine == "aarch64" or
         machine == "earmv6hf"):
+        return True
+    return False
+
+def is_test_target(target):
+    arch = target[TARGET_ARCH]
+    machine = target[TARGET_MACHINE]
+    if (arch == "amd64" or
+        arch == "i386" or
+        arch == "sparc64" or
+        arch == "sparc" or
+        arch == "pmax" or
+        arch == "hpcmips" or
+        machine == "aarch64" or
+        machine == "earmv7hf"):
         return True
     return False
 
@@ -139,6 +155,13 @@ def is_HEAD_target(target):
     return target_in_branch(target, 10)
 
 def to_builder(targets, buildtype, branchname):
+    if buildtype != "":
+        build_name = branchname + "-" + buildtype
+        tags = [buildtype, branchname]
+    else:
+        build_name = branchname
+        tags = [branchname]
+
     def build_target(target, branchname):
         arch = target[TARGET_ARCH]
         machine = target[TARGET_MACHINE]
@@ -189,9 +212,10 @@ def to_builder(targets, buildtype, branchname):
             return []
 
         return " ".join(["../src/build.sh",
+                 "-O", "$PWD",
                  "-j", "$(/sbin/sysctl -n hw.ncpuonline)",
                  "-B", "$(date -r $(cd ../src; git show -s --format=%ct) +%Y%m%d%H%MZ)",
-                 "-R", "../releasedir",
+                 "-R", "$HOME/releasedir/" + build_name  + "/$(date -r $(cd ../src; git show -s --format=%ct) +%Y%m%d%H%MZ)/",
                  "-U", "-P", "-N0", "-V", "TMPDIR=/tmp",
                  "-V", "MKDEBUG=yes", "-V", "BUILD=yes"]
                 + x_flags(target) + target_flags(target) +
@@ -224,19 +248,14 @@ def to_builder(targets, buildtype, branchname):
                 name="clean releasedir before",
                 description="cleaning release directory - before",
                 descriptionDone="clean releasedir",
-                command=["rm", "-rf", "../releasedir"]
+                command="rm -rf $HOME/releasedir"
             ))
 
     for target in targets:
-        if target[TARGET_MACHINE] != "":
-            target_name = target[TARGET_MACHINE]
-        else:
-            target_name = target[TARGET_ARCH]
-
         factory.addStep(steps.ShellCommand(
                     haltOnFailure=True,
                     logEnviron=False,
-                    name="clean obj before " + target_name,
+                    name="clean obj before " + build_name,
                     description="cleaning obj directory - before",
                     descriptionDone="clean obj",
                     command=["rm", "-rf", "../build"]
@@ -244,7 +263,7 @@ def to_builder(targets, buildtype, branchname):
         factory.addStep(steps.ShellCommand(
                     haltOnFailure=False,
                     logEnviron=False,
-                    name="build " + target_name,
+                    name="build " + build_name,
                     description="building src",
                     descriptionDone="build done",
                     command=build_command(target, buildtype),
@@ -253,28 +272,54 @@ def to_builder(targets, buildtype, branchname):
         factory.addStep(steps.ShellCommand(
                     haltOnFailure=True,
                     logEnviron=False,
-                    name="clean obj after " + target_name,
+                    name="clean obj after " + build_name,
                     description="cleaning obj directory - after",
                     descriptionDone="clean obj",
                     command=["rm", "-rf", "../build"]
                 ))
 
-    build_name = branchname + "-" + buildtype
-    tags = [buildtype, branchname]
+    factory.addStep(steps.ShellCommand(
+                haltOnFailure=True,
+                logEnviron=False,
+                name="uploading releasedir",
+                description="uploading release directory",
+                descriptionDone="upload releasedir",
+                command="rsync --avr $HOME/releasedir $HOME/releasedir-target-upload/"
+            ))
+
+    def buildtype_is_tested(buildtype):
+        if (buildtype == "lint" or
+            buildtype == "LLVM"):
+            return False
+        return True
+
+    if buildtype_is_tested(buildtype):
+        test_targets = [target for target in targets if is_test_target(target)]
+        for target in test_targets:
+            factory.addStep(steps.ShellCommand(
+                        haltOnFailure=True,
+                        logEnviron=False,
+                        name="testing " + build_name,
+                        description="testing " + build_name,
+                        descriptionDone="testing done",
+                        command="anita test $HOME/releasedir/" + build_name  + "/$(date -r $(cd ../src; git show -s --format=%ct) +%Y%m%d%H%MZ)/",
+                    ))
 
     return util.BuilderConfig(name=build_name,
                               workernames=["worker1"],
                               factory=factory,
-                              tags=tags), build_name
+                              tags=tags,
+                              locks=[build_lock.access('exclusive')]
+                              ), build_name
 
 def generate_stable_builders():
     netbsd_8_builder = to_builder(
             [target for target in targets if is_8_target(target)],
-            buildtype="regular",
+            buildtype="",
             branchname="netbsd-8")
     netbsd_9_builder = to_builder(
             [target for target in targets if is_9_target(target)],
-            buildtype="regular",
+            buildtype="",
             branchname="netbsd-9")
 
     return [netbsd_8_builder, netbsd_9_builder]
@@ -291,7 +336,7 @@ def generate_head_builders():
             branchname="HEAD")
     HEAD_builder = to_builder(
             [target for target in targets if is_HEAD_target(target)],
-            buildtype="regular",
+            buildtype="",
             branchname="HEAD")
 
     return [llvm_builder, lint_builder, HEAD_builder]
@@ -307,5 +352,3 @@ def generate_release_builders():
             branchname="netbsd-9")
 
     return [netbsd_8_RELEASE_builder, netbsd_9_RELEASE_builder]
-
-
