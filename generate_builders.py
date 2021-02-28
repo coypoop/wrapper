@@ -211,7 +211,8 @@ def to_builder(targets, buildtype, branchname):
                 return ["-V", "NETBSD_OFFICIAL_RELEASE=yes"]
             return []
 
-        return " ".join(["../src/build.sh",
+        return " ".join(["rm", "-rf", "../build/*", ";", 
+                 "../src/build.sh",
                  "-O", "$PWD",
                  "-j", "$(/sbin/sysctl -n hw.ncpuonline)",
                  "-B", "$(date -r $(cd ../src; git show -s --format=%ct) +%Y%m%d%H%MZ)",
@@ -219,7 +220,10 @@ def to_builder(targets, buildtype, branchname):
                  "-U", "-P", "-N0", "-V", "TMPDIR=/tmp",
                  "-V", "MKDEBUG=yes", "-V", "BUILD=yes"]
                 + x_flags(target) + target_flags(target) +
-                buildtype_flags(buildtype) + build_target(target, branchname))
+                buildtype_flags(buildtype) + build_target(target, branchname) +
+                [";", "build_status=$?"] +
+                [";", "rm", "-rf", "../build/*"] +
+                [";", "exit", "$build_status"])
 
     factory = util.BuildFactory()
     factory.addStep(steps.Git(
@@ -253,29 +257,14 @@ def to_builder(targets, buildtype, branchname):
 
     for target in targets:
         factory.addStep(steps.ShellCommand(
-                    haltOnFailure=True,
-                    logEnviron=False,
-                    name="clean obj before " + build_name,
-                    description="cleaning obj directory - before",
-                    descriptionDone="clean obj",
-                    command=["rm", "-rf", "../build"]
-                ))
-        factory.addStep(steps.ShellCommand(
                     haltOnFailure=False,
                     logEnviron=False,
                     name="build " + build_name,
                     description="building src",
                     descriptionDone="build done",
                     command=build_command(target, buildtype),
+                    locks=[build_lock.access('exclusive')],
                     workdir="build"
-                ))
-        factory.addStep(steps.ShellCommand(
-                    haltOnFailure=True,
-                    logEnviron=False,
-                    name="clean obj after " + build_name,
-                    description="cleaning obj directory - after",
-                    descriptionDone="clean obj",
-                    command=["rm", "-rf", "../build"]
                 ))
 
     factory.addStep(steps.ShellCommand(
@@ -284,7 +273,7 @@ def to_builder(targets, buildtype, branchname):
                 name="uploading releasedir",
                 description="uploading release directory",
                 descriptionDone="upload releasedir",
-                command="rsync --avr $HOME/releasedir $HOME/releasedir-target-upload/"
+                command="rsync -avr $HOME/releasedir $HOME/releasedir-target-upload/"
             ))
 
     def buildtype_is_tested(buildtype):
@@ -296,20 +285,26 @@ def to_builder(targets, buildtype, branchname):
     if buildtype_is_tested(buildtype):
         test_targets = [target for target in targets if is_test_target(target)]
         for target in test_targets:
+            arch = target[TARGET_ARCH]
+            machine = target[TARGET_MACHINE]
+            if machine != "":
+                release_arch = arch + "-" + machine
+            else:
+                release_arch = arch
+
             factory.addStep(steps.ShellCommand(
                         haltOnFailure=True,
                         logEnviron=False,
                         name="testing " + build_name,
                         description="testing " + build_name,
                         descriptionDone="testing done",
-                        command="anita test $HOME/releasedir/" + build_name  + "/$(date -r $(cd ../src; git show -s --format=%ct) +%Y%m%d%H%MZ)/",
+                        command="anita test $HOME/releasedir/" + build_name + "/$(date -r $(cd ../src; git show -s --format=%ct) +%Y%m%d%H%MZ)/" + release_arch,
                     ))
 
     return util.BuilderConfig(name=build_name,
                               workernames=["worker1"],
                               factory=factory,
                               tags=tags,
-                              locks=[build_lock.access('exclusive')]
                               ), build_name
 
 def generate_stable_builders():
