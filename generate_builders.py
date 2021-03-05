@@ -294,7 +294,7 @@ def to_builder(targets, buildtype, branchname):
         test_targets = [target for target in targets if is_test_target(target)]
         for target in test_targets:
             factory.addStep(steps.ShellCommand(
-                        haltOnFailure=True,
+                        haltOnFailure=False,
                         logEnviron=False,
                         name="testing " + build_name + " " + target_name(target),
                         description="testing " + build_name + " " + target_name(target),
