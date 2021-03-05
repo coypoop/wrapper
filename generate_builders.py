@@ -162,6 +162,14 @@ def to_builder(targets, buildtype, branchname):
         build_name = branchname
         tags = [branchname]
 
+    def target_name(target):
+        arch = target[TARGET_ARCH]
+        machine = target[TARGET_MACHINE]
+        if machine != "":
+            return arch + "-" + machine
+        else:
+            return arch
+
     def build_target(target, branchname):
         arch = target[TARGET_ARCH]
         machine = target[TARGET_MACHINE]
@@ -214,7 +222,7 @@ def to_builder(targets, buildtype, branchname):
         return " ".join(["rm", "-rf", "../build/*", ";", 
                  "../src/build.sh",
                  "-O", "$PWD",
-                 "-j", "$(/sbin/sysctl -n hw.ncpuonline)",
+                 "-j", "6", # XXX ncpu "$(/sbin/sysctl -n hw.ncpuonline)",
                  "-B", "$(date -r $(cd ../src; git show -s --format=%ct) +%Y%m%d%H%MZ)",
                  "-R", "$HOME/releasedir/" + build_name  + "/$(date -r $(cd ../src; git show -s --format=%ct) +%Y%m%d%H%MZ)/",
                  "-U", "-P", "-N0", "-V", "TMPDIR=/tmp",
@@ -233,8 +241,8 @@ def to_builder(targets, buildtype, branchname):
                 branch=branchname,
                 mode='incremental',
                 codebase='src',
-                retry=(5, 3),
-                workdir="src"
+                workdir="src",
+                timeout=12000
             ))
     factory.addStep(steps.Git(
                 haltOnFailure=True,
@@ -243,8 +251,8 @@ def to_builder(targets, buildtype, branchname):
                 branch=branchname,
                 mode='incremental',
                 codebase='xsrc',
-                retry=(5, 3),
-                workdir="xsrc"
+                workdir="xsrc",
+                timeout=12000
             ))
     factory.addStep(steps.ShellCommand(
                 haltOnFailure=True,
@@ -259,7 +267,7 @@ def to_builder(targets, buildtype, branchname):
         factory.addStep(steps.ShellCommand(
                     haltOnFailure=False,
                     logEnviron=False,
-                    name="build " + build_name,
+                    name="build " + build_name + " " + target_name(target),
                     description="building src",
                     descriptionDone="build done",
                     command=build_command(target, buildtype),
@@ -285,20 +293,38 @@ def to_builder(targets, buildtype, branchname):
     if buildtype_is_tested(buildtype):
         test_targets = [target for target in targets if is_test_target(target)]
         for target in test_targets:
-            arch = target[TARGET_ARCH]
-            machine = target[TARGET_MACHINE]
-            if machine != "":
-                release_arch = arch + "-" + machine
-            else:
-                release_arch = arch
-
             factory.addStep(steps.ShellCommand(
                         haltOnFailure=True,
                         logEnviron=False,
-                        name="testing " + build_name,
-                        description="testing " + build_name,
+                        name="testing " + build_name + " " + target_name(target),
+                        description="testing " + build_name + " " + target_name(target),
                         descriptionDone="testing done",
-                        command="anita test $HOME/releasedir/" + build_name + "/$(date -r $(cd ../src; git show -s --format=%ct) +%Y%m%d%H%MZ)/" + release_arch,
+                        command="anita test --vmm-args \"-accel nvmm\" --memory-size 512M --workdir workdir-tests/ $HOME/releasedir/" + build_name + "/$(date -r $(cd ../src; git show -s --format=%ct) +%Y%m%d%H%MZ)/" + target_name(target) + "/",
+                        timeout=6000,
+                    ))
+            factory.addStep(steps.ShellCommand(
+                        haltOnFailure=True,
+                        logEnviron=False,
+                        name="test output (XSL) " + build_name + " " + target_name(target),
+                        description="test output (XSL) " + build_name + " " + target_name(target),
+                        descriptionDone="output done",
+                        command="cat workdir-tests/atf/tests-results.xsl",
+                    ))
+            factory.addStep(steps.ShellCommand(
+                        haltOnFailure=True,
+                        logEnviron=False,
+                        name="test output (XML) " + build_name + " " + target_name(target),
+                        description="test output (XML) " + build_name + " " + target_name(target),
+                        descriptionDone="output done",
+                        command="cat workdir-tests/atf/test.xml",
+                    ))
+            factory.addStep(steps.ShellCommand(
+                        haltOnFailure=True,
+                        logEnviron=False,
+                        name="delete test workdir " + build_name + " " + target_name(target),
+                        description="deleting test workdir " + build_name + " " + target_name(target),
+                        descriptionDone="deleting test workdir done",
+                        command="rm -rf workdir-tests",
                     ))
 
     return util.BuilderConfig(name=build_name,
@@ -334,7 +360,7 @@ def generate_head_builders():
             buildtype="",
             branchname="HEAD")
 
-    return [llvm_builder, lint_builder, HEAD_builder]
+    return [HEAD_builder, llvm_builder, lint_builder]
 
 def generate_release_builders():
     netbsd_8_RELEASE_builder = to_builder(
