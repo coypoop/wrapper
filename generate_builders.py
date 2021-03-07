@@ -299,7 +299,7 @@ def to_builder(targets, buildtype, branchname):
                         name="testing " + build_name + " " + target_name(target),
                         description="testing " + build_name + " " + target_name(target),
                         descriptionDone="testing done",
-                        command="anita test --vmm-args \"-accel nvmm\" --memory-size 512M --workdir workdir-tests/ $HOME/releasedir/" + build_name + "/$(date -r $(cd ../src; git show -s --format=%ct) +%Y%m%d%H%MZ)/" + target_name(target) + "/",
+                        command="anita test --memory-size 512M --workdir workdir-tests/ $HOME/releasedir/" + build_name + "/$(date -r $(cd ../src; git show -s --format=%ct) +%Y%m%d%H%MZ)/" + target_name(target) + "/",
                         timeout=6000,
                     ))
             factory.addStep(steps.ShellCommand(
@@ -309,6 +309,14 @@ def to_builder(targets, buildtype, branchname):
                         description="test output (XSL) " + build_name + " " + target_name(target),
                         descriptionDone="output done",
                         command="cat workdir-tests/atf/tests-results.xsl",
+                    ))
+            factory.addStep(steps.ShellCommand(
+                        haltOnFailure=True,
+                        logEnviron=False,
+                        name="test output (CSS) " + build_name + " " + target_name(target),
+                        description="test output (CSS) " + build_name + " " + target_name(target),
+                        descriptionDone="output done",
+                        command="cat workdir-tests/atf/tests-results.css",
                     ))
             factory.addStep(steps.ShellCommand(
                         haltOnFailure=True,
