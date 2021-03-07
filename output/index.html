@@ -1,0 +1,67 @@
+<!--
+	HEAD	|	commit date	|	Failed build steps	|	Test failures
+	[-]	|	2021-10-2 9:00	|	3/82			|	23 new failures
+	[+]	|	2021-10-1 9:00	|	3/82			|	2 new failures
+	Failed steps: i386, rsync, sun2
+	New failing:
+		i386:	t_ro_asdf
+		amd64:	t_rw_asdf
+	Test results:	i386 (20 failures, 4800 passing)
+			amd64 (12 failures, 4800 passing)
+-->
+<html><body>
+<table>
+<thead>
+<td>Build configuration</td>
+<td>Expand</td>
+<td>Commit date</td>
+<td>Failed build steps</td>
+<td>New test failures</td>
+</thead>
+<tr>
+<th rowspan="2">HEAD-llvm</th>
+<td>[+]</td>
+<td>2021-10-2 9:00</td>
+<td>3/82</td>
+<td>23 new test failures</td>
+</tr>
+<tr>
+<td>[-]</td>
+<td> 2021-10-1 9:00</td>
+<td>3/82</td>
+<td>2 new test failures</td>
+</tr>
+<tr>
+
+<td colspan="4">
+<p>
+Failed steps: <a href="./i386">i386</a>, <a href="./sun2">sun2</a>, <a href="./rsync">rsync</a>
+</p>
+<p>
+New failing tests:
+	<table>
+	<tr>
+	<td>i386</td>
+	<td>t_ro_asdf</td>
+	</tr>
+	<tr>
+	<td>amd64</td>
+	<td>t_rw_asdf</td>
+	</tr>
+	</table>
+Test results:
+	<table>
+	<tr>
+	<td>i386</td>
+	<td>23 failed, 4708 passing</td>
+	</tr>
+	<tr>
+	<td>amd64</td>
+	<td>16 failed, 4708 passing</td>
+	</tr>
+	</table>
+
+</td>
+</tr>
+</table>
+</body></html>

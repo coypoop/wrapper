@@ -1,0 +1,48 @@
+builders = curl http://localhost:8010/api/v2/builders |jq -r '.builders[].number'
+
+for builder in builders:
+	builds = curl http://localhost:8010/api/v2/builders/3/builds | jq -r '.builds[].builerid'
+
+	build in builds:
+		previous_test_failures = []
+		steps = curl http://localhost:8010/api/v2/builders/3/builds/14/steps | jq -r '.steps[].number'
+
+		for step in steps:
+			step_result = [ null (not complete) | non-zero (failure) | zero (success) ]
+			if failed step:
+				failed_steps += steps
+
+			if not complete step:
+				not_complete = true
+
+			if xsl:
+				dump_raw(build/ID/arch/test.{xml,xsl})
+			if xml:
+				test_failures = parse_test_result(xml)
+				dump_raw(build/ID/arch/test.{xml,xsl})
+
+
+			logid = curl http://localhost:8010/api/v2/builders/3/builds/14/steps/9/logs | jq -r '.logs[].logid'
+			log = curl http://localhost:8010/api/v2/logs/207/raw
+
+			by default, expand log if step_result != success
+
+		output_html_test_output
+
+		added_test_failures, removed_test_failures = diff_test_failures()
+		previous_test_failures = test_failures
+		test_failures = []
+
+		if not_complete
+			status yellow
+		else if failed_steps != nil
+			status red
+		else
+			status green
+
+		if build_is_last && failed_steps != nil
+			expand_by_default
+
+
+		output_test_summary(added_test_failures, removed_test_failures)
+		
