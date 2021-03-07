@@ -194,7 +194,6 @@ func getTestFailuresPath(xmlPath string) []string {
 	}
 	testResults := TestResults{}
 
-
 	reader := bytes.NewReader(data)
 	decoder := xml.NewDecoder(reader)
 	decoder.CharsetReader = charset.NewReaderLabel
@@ -203,7 +202,7 @@ func getTestFailuresPath(xmlPath string) []string {
 	for _, testPlan := range testResults.TestPlans {
 		for _, testCase := range testPlan.TestCases {
 			if testCase.Failed != "" {
-				testFailures = append(testFailures, testPlan.ID + ":" + testCase.ID)
+				testFailures = append(testFailures, testPlan.ID+":"+testCase.ID)
 			}
 		}
 	}

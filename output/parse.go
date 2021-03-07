@@ -3,16 +3,16 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"strings"
-	"time"
 	"os"
 	"os/exec"
+	"strings"
+	"time"
 )
 
 type StepContext struct {
 	Builder BuildersInner
-	Build BuildsInner
-	Step StepsInner
+	Build   BuildsInner
+	Step    StepsInner
 }
 
 func main() {
@@ -28,8 +28,8 @@ func main() {
 			for _, step := range steps {
 				sc := StepContext{
 					Builder: builder,
-					Build: build,
-					Step: step,
+					Build:   build,
+					Step:    step,
 				}
 				if sc.IsFailed() {
 					failedSteps = append(failedSteps, step)
@@ -44,13 +44,13 @@ func main() {
 					failedTests = sc.getTestFailures()
 					sc.dumpTestHTML()
 				}
-/*
-				logs := getLogs(builder.BuilderId, build.Number, step.Number)
-				logRaw := getLogRaw(logs)
-				if len(logs) == 1 && logs[0].LogId == 207 {
-					fmt.Printf("%s", logRaw)
-				}
-*/
+				/*
+					logs := getLogs(builder.BuilderId, build.Number, step.Number)
+					logRaw := getLogRaw(logs)
+					if len(logs) == 1 && logs[0].LogId == 207 {
+						fmt.Printf("%s", logRaw)
+					}
+				*/
 			}
 			fmt.Printf("in progress: %v\n", inProgress)
 			fmt.Printf("failed steps: %v\n", failedSteps)
@@ -79,7 +79,7 @@ func (sc StepContext) dumpTestRawOutput() {
 
 func (sc StepContext) dumpTestHTML() {
 	dirName := sc.getOutputDir()
-	html, err := exec.Command("xsltproc", "--nonet", "--novalid", dirName + "tests-results.xsl", dirName + "test.xml").Output()
+	html, err := exec.Command("xsltproc", "--nonet", "--novalid", dirName+"tests-results.xsl", dirName+"test.xml").Output()
 	if err != nil {
 		panic(err)
 	}
@@ -131,7 +131,7 @@ func (sc StepContext) dump(filename string, stripDebug bool) {
 }
 
 func (sc StepContext) dumpLog() {
-	sc.dump(string(sc.Step.Number) + ".log", false)
+	sc.dump(string(sc.Step.Number)+".log", false)
 }
 
 func (sc StepContext) dumpXML() {
@@ -155,7 +155,7 @@ func stripBuildbotDebug(log []byte) []byte {
 
 func (sc StepContext) GetTargetName() string {
 	nameWords := strings.Split(sc.Step.Name, " ")
-	return nameWords[len(nameWords) - 1]
+	return nameWords[len(nameWords)-1]
 }
 
 func (sc StepContext) IsCSS() bool {
