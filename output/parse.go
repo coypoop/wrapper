@@ -9,6 +9,12 @@ import (
 	"os/exec"
 )
 
+type StepContext struct {
+	Builder BuildersInner
+	Build BuildsInner
+	Step StepsInner
+}
+
 func main() {
 	builders := getBuilders()
 	for _, builder := range builders {
@@ -20,18 +26,23 @@ func main() {
 			var failedTests []string
 			var inProgress bool
 			for _, step := range steps {
-				if step.IsFailed() {
+				sc := StepContext{
+					Builder: builder,
+					Build: build,
+					Step: step,
+				}
+				if sc.IsFailed() {
 					failedSteps = append(failedSteps, step)
 				}
 
-				if step.IsInProgress() {
+				if sc.IsInProgress() {
 					inProgress = true
 				}
-				dumpTestRawOutput(builder, build, step)
+				sc.dumpTestRawOutput()
 
-				if step.IsXML() {
-					failedTests = getTestFailures(builder, build, step)
-					dumpTestHTML(builder, build, step)
+				if sc.IsXML() {
+					failedTests = sc.getTestFailures()
+					sc.dumpTestHTML()
 				}
 /*
 				logs := getLogs(builder.BuilderId, build.Number, step.Number)
@@ -52,22 +63,22 @@ func main() {
 	}
 }
 
-func dumpTestRawOutput(builder BuildersInner, build BuildsInner, step StepsInner) {
-	if step.IsXSL() {
-		dumpXSL(builder, build, step)
+func (sc StepContext) dumpTestRawOutput() {
+	if sc.IsXSL() {
+		sc.dumpXSL()
 	}
 
-	if step.IsXML() {
-		dumpXML(builder, build, step)
+	if sc.IsXML() {
+		sc.dumpXML()
 	}
 
-	if step.IsCSS() {
-		dumpCSS(builder, build, step)
+	if sc.IsCSS() {
+		sc.dumpCSS()
 	}
 }
 
-func dumpTestHTML(builder BuildersInner, build BuildsInner, step StepsInner) {
-	dirName := getOutputDir(builder, build, step)
+func (sc StepContext) dumpTestHTML() {
+	dirName := sc.getOutputDir()
 	html, err := exec.Command("xsltproc", "--nonet", "--novalid", dirName + "tests-results.xsl", dirName + "test.xml").Output()
 	if err != nil {
 		panic(err)
@@ -85,23 +96,23 @@ func dumpTestHTML(builder BuildersInner, build BuildsInner, step StepsInner) {
 	}
 }
 
-func getOutputDir(builder BuildersInner, build BuildsInner, step StepsInner) string {
-	return fmt.Sprintf("_out/%d/%s/%s/", build.StartedAt, builder.Name, step.GetTargetName())
+func (sc StepContext) getOutputDir() string {
+	return fmt.Sprintf("_out/%d/%s/%s/", sc.Build.StartedAt, sc.Builder.Name, sc.GetTargetName())
 }
 
-func getTestFailures(builder BuildersInner, build BuildsInner, step StepsInner) []string {
-	pathName := getOutputDir(builder, build, step) + "test.xml"
+func (sc StepContext) getTestFailures() []string {
+	pathName := sc.getOutputDir() + "test.xml"
 	return getTestFailuresPath(pathName)
 }
 
-func dump(builder BuildersInner, build BuildsInner, step StepsInner, filename string, stripDebug bool) {
-	dirName := getOutputDir(builder, build, step)
+func (sc StepContext) dump(filename string, stripDebug bool) {
+	dirName := sc.getOutputDir()
 	err := os.MkdirAll(dirName, 0744)
 	if err != nil {
 		panic(err)
 	}
 
-	logs := getLogs(builder.BuilderId, build.Number, step.Number)
+	logs := getLogs(sc.Builder.BuilderId, sc.Build.Number, sc.Step.Number)
 	logRaw := getLogRaw(logs)
 	if stripDebug {
 		logRaw = stripBuildbotDebug(logRaw)
@@ -119,20 +130,20 @@ func dump(builder BuildersInner, build BuildsInner, step StepsInner, filename st
 	}
 }
 
-func dumpLog(builder BuildersInner, build BuildsInner, step StepsInner) {
-	dump(builder, build, step, string(step.Number) + ".log", false)
+func (sc StepContext) dumpLog() {
+	sc.dump(string(sc.Step.Number) + ".log", false)
 }
 
-func dumpXML(builder BuildersInner, build BuildsInner, step StepsInner) {
-	dump(builder, build, step, "test.xml", true)
+func (sc StepContext) dumpXML() {
+	sc.dump("test.xml", true)
 }
 
-func dumpXSL(builder BuildersInner, build BuildsInner, step StepsInner) {
-	dump(builder, build, step, "tests-results.xsl", true)
+func (sc StepContext) dumpXSL() {
+	sc.dump("tests-results.xsl", true)
 }
 
-func dumpCSS(builder BuildersInner, build BuildsInner, step StepsInner) {
-	dump(builder, build, step, "tests-results.css", true)
+func (sc StepContext) dumpCSS() {
+	sc.dump("tests-results.css", true)
 }
 
 // Buildbot adds some information about the command being executed.
@@ -142,28 +153,28 @@ func stripBuildbotDebug(log []byte) []byte {
 	return bytes.Join(split[5:len(split)-2], []byte("\n"))
 }
 
-func (step StepsInner) GetTargetName() string {
-	nameWords := strings.Split(step.Name, " ")
+func (sc StepContext) GetTargetName() string {
+	nameWords := strings.Split(sc.Step.Name, " ")
 	return nameWords[len(nameWords) - 1]
 }
 
-func (step StepsInner) IsCSS() bool {
-	return strings.Contains(step.Name, "CSS")
+func (sc StepContext) IsCSS() bool {
+	return strings.Contains(sc.Step.Name, "CSS")
 }
 
-func (step StepsInner) IsXSL() bool {
-	return strings.Contains(step.Name, "XSL")
+func (sc StepContext) IsXSL() bool {
+	return strings.Contains(sc.Step.Name, "XSL")
 }
 
-func (step StepsInner) IsXML() bool {
-	return strings.Contains(step.Name, "XML")
+func (sc StepContext) IsXML() bool {
+	return strings.Contains(sc.Step.Name, "XML")
 }
 
-func (step StepsInner) IsFailed() bool {
-	return (step.Results != nil &&
-		*step.Results != 0)
+func (sc StepContext) IsFailed() bool {
+	return (sc.Step.Results != nil &&
+		*sc.Step.Results != 0)
 }
 
-func (step StepsInner) IsInProgress() bool {
-	return step.Results == nil
+func (sc StepContext) IsInProgress() bool {
+	return sc.Step.Results == nil
 }
