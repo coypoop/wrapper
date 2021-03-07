@@ -110,7 +110,7 @@ func (sc StepContext) getTestFailures() TestOutput {
 	pathName := sc.getOutputDir() + sc.GetTargetName() + "-test.xml"
 	return TestOutput{
 		Architecture: sc.GetTargetName(),
-		FailedTests: getTestFailuresPath(pathName),
+		FailedTests:  getTestFailuresPath(pathName),
 	}
 }
 
@@ -144,11 +144,11 @@ func (sc StepContext) dumpLog() {
 }
 
 func (sc StepContext) dumpXML() {
-	sc.dump(sc.GetTargetName() + "-test.xml", true)
+	sc.dump(sc.GetTargetName()+"-test.xml", true)
 }
 
 func (sc StepContext) dumpXSL() {
-	sc.dump(sc.GetTargetName() + "-tests-results.xsl", true)
+	sc.dump(sc.GetTargetName()+"-tests-results.xsl", true)
 }
 
 func (sc StepContext) dumpCSS() {
