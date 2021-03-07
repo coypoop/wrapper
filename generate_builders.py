@@ -267,7 +267,7 @@ def to_builder(targets, buildtype, branchname):
         factory.addStep(steps.ShellCommand(
                     haltOnFailure=False,
                     logEnviron=False,
-                    name="build " + build_name + " " + target_name(target),
+                    name=target_name(target),
                     description="building src",
                     descriptionDone="build done",
                     command=build_command(target, buildtype),
