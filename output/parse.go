@@ -17,6 +17,7 @@ func main() {
 			sourcestamps := getSourcestamps(build.BuildRequestId)
 			steps := getSteps(builder.BuilderId, build.Number)
 			var failedSteps []StepsInner
+			var failedTests []string
 			var inProgress bool
 			for _, step := range steps {
 				if step.IsFailed() {
@@ -29,7 +30,7 @@ func main() {
 				dumpTestRawOutput(builder, build, step)
 
 				if step.IsXML() {
-					//testFailures = parseTestOutput(step)
+					failedTests = getTestFailures(builder, build, step)
 					dumpTestHTML(builder, build, step)
 				}
 /*
@@ -44,6 +45,7 @@ func main() {
 			fmt.Printf("failed steps: %v\n", failedSteps)
 			fmt.Printf("commit time: %v\n commit hash: %v\n", time.Unix(sourcestamps[1].CreatedAt, 0), sourcestamps[1].Revision)
 			fmt.Printf("failed steps: %v\n", failedSteps)
+			fmt.Printf("failed test cases: %v\n", failedTests)
 			//startedAt := build.StartedAt
 		}
 		//builderName := builder.Name
@@ -85,6 +87,11 @@ func dumpTestHTML(builder BuildersInner, build BuildsInner, step StepsInner) {
 
 func getOutputDir(builder BuildersInner, build BuildsInner, step StepsInner) string {
 	return fmt.Sprintf("_out/%d/%s/%s/", build.StartedAt, builder.Name, step.GetTargetName())
+}
+
+func getTestFailures(builder BuildersInner, build BuildsInner, step StepsInner) []string {
+	pathName := getOutputDir(builder, build, step) + "test.xml"
+	return getTestFailuresPath(pathName)
 }
 
 func dump(builder BuildersInner, build BuildsInner, step StepsInner, filename string, stripDebug bool) {

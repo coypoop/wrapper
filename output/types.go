@@ -1,5 +1,7 @@
 package main
 
+import "encoding/xml"
+
 type BuildersInner struct {
 	BuilderId   int      `json:"builderid"`
 	Description string   `json:"description"`
@@ -110,4 +112,17 @@ type BuildSets struct {
 
 type Meta struct {
 	Total int `json:"total"`
+}
+
+type TestResults struct {
+	XMLName xml.Name `xml:"tests-results"`
+	TestPlans []struct {
+		XMLName xml.Name `xml:"tp"`
+		ID string `xml:"id,attr"`
+		TestCases []struct{
+			XMLName xml.Name `xml:"tc"`
+			ID string `xml:"id,attr"`
+			Failed string `xml:"failed"`
+		} `xml:"tc"`
+	} `xml:"tp"`
 }

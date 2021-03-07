@@ -1,10 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
+	"encoding/xml"
 	"fmt"
+	"golang.org/x/net/html/charset"
 	"io/ioutil"
 	"net/http"
+	"os"
 )
 
 func getLogRaw(logs []LogsInner) []byte {
@@ -173,4 +177,36 @@ func getSourcestamps(buildrequestid int) []Sourcestamps {
 	}
 
 	return sourcestamps
+}
+
+func getTestFailuresPath(xmlPath string) []string {
+	var testFailures []string
+
+	xmlFile, err := os.Open(xmlPath)
+	if err != nil {
+		panic(err)
+	}
+	defer xmlFile.Close()
+
+	data, err := ioutil.ReadAll(xmlFile)
+	if err != nil {
+		panic(err)
+	}
+	testResults := TestResults{}
+
+
+	reader := bytes.NewReader(data)
+	decoder := xml.NewDecoder(reader)
+	decoder.CharsetReader = charset.NewReaderLabel
+	err = decoder.Decode(&testResults)
+
+	for _, testPlan := range testResults.TestPlans {
+		for _, testCase := range testPlan.TestCases {
+			if testCase.Failed != "" {
+				testFailures = append(testFailures, testPlan.ID + ":" + testCase.ID)
+			}
+		}
+	}
+
+	return testFailures
 }
