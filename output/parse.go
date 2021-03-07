@@ -23,6 +23,8 @@ type TestOutput struct {
 func main() {
 	builders := getBuilders()
 	for _, builder := range builders {
+		firstTestResult := true
+		var prevFailedTests []TestOutput
 		builds := getBuilds(builder.BuilderId)
 		for _, build := range builds {
 			sourcestamps := getSourcestamps(build.BuildRequestId)
@@ -58,15 +60,62 @@ func main() {
 					}
 				*/
 			}
+
+			fmt.Printf("----------------------------------------\n")
 			fmt.Printf("in progress: %v\n", inProgress)
 			fmt.Printf("failed steps: %v\n", failedStepNames)
 			fmt.Printf("commit time: %v\n commit hash: %v\n", time.Unix(sourcestamps[1].CreatedAt, 0), sourcestamps[1].Revision)
 			fmt.Printf("failed steps: %v\n", failedStepNames)
 			fmt.Printf("failed test cases: %v\n", failedTests)
+			if !firstTestResult {
+				newFail, newSuccess := compareTests(prevFailedTests, failedTests)
+				fmt.Printf("New fail: %v\nNew success: %v\n", newFail, newSuccess)
+			}
+
+			firstTestResult = false
+			prevFailedTests = failedTests
+
 			//startedAt := build.StartedAt
 		}
 		//builderName := builder.Name
 	}
+}
+
+func compareTests(a, b []TestOutput) ([]TestOutput, []TestOutput) {
+	added := []TestOutput{}
+	removed := []TestOutput{}
+	for _, newTestOutput := range a {
+		for _, prevTestOutput := range b {
+			if newTestOutput.Architecture == prevTestOutput.Architecture {
+				addedTestCases := difference(prevTestOutput.FailedTests, newTestOutput.FailedTests)
+				removedTestCases := difference(newTestOutput.FailedTests, prevTestOutput.FailedTests)
+				added = append(added, TestOutput{
+					Architecture: newTestOutput.Architecture,
+					FailedTests:  addedTestCases,
+				})
+				removed = append(removed, TestOutput{
+					Architecture: newTestOutput.Architecture,
+					FailedTests:  removedTestCases,
+				})
+			}
+		}
+	}
+
+	return added, removed
+}
+
+func difference(a, b []string) []string {
+	mb := make(map[string]struct{}, len(b))
+	for _, x := range b {
+		mb[x] = struct{}{}
+	}
+	var removed []string
+	for _, x := range a {
+		if _, found := mb[x]; !found {
+			removed = append(removed, x)
+		}
+	}
+	return removed
 }
 
 func (sc StepContext) dumpTestRawOutput() {
