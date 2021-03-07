@@ -15,6 +15,11 @@ type StepContext struct {
 	Step    StepsInner
 }
 
+type TestOutput struct {
+	Architecture string
+	FailedTests  []string
+}
+
 func main() {
 	builders := getBuilders()
 	for _, builder := range builders {
@@ -22,8 +27,8 @@ func main() {
 		for _, build := range builds {
 			sourcestamps := getSourcestamps(build.BuildRequestId)
 			steps := getSteps(builder.BuilderId, build.Number)
-			var failedSteps []StepsInner
-			var failedTests []string
+			var failedStepNames []string
+			var failedTests []TestOutput
 			var inProgress bool
 			for _, step := range steps {
 				sc := StepContext{
@@ -31,8 +36,9 @@ func main() {
 					Build:   build,
 					Step:    step,
 				}
+				sc.dumpLog()
 				if sc.IsFailed() {
-					failedSteps = append(failedSteps, step)
+					failedStepNames = append(failedStepNames, step.Name)
 				}
 
 				if sc.IsInProgress() {
@@ -41,7 +47,7 @@ func main() {
 				sc.dumpTestRawOutput()
 
 				if sc.IsXML() {
-					failedTests = sc.getTestFailures()
+					failedTests = append(failedTests, sc.getTestFailures())
 					sc.dumpTestHTML()
 				}
 				/*
@@ -53,9 +59,9 @@ func main() {
 				*/
 			}
 			fmt.Printf("in progress: %v\n", inProgress)
-			fmt.Printf("failed steps: %v\n", failedSteps)
+			fmt.Printf("failed steps: %v\n", failedStepNames)
 			fmt.Printf("commit time: %v\n commit hash: %v\n", time.Unix(sourcestamps[1].CreatedAt, 0), sourcestamps[1].Revision)
-			fmt.Printf("failed steps: %v\n", failedSteps)
+			fmt.Printf("failed steps: %v\n", failedStepNames)
 			fmt.Printf("failed test cases: %v\n", failedTests)
 			//startedAt := build.StartedAt
 		}
@@ -79,12 +85,12 @@ func (sc StepContext) dumpTestRawOutput() {
 
 func (sc StepContext) dumpTestHTML() {
 	dirName := sc.getOutputDir()
-	html, err := exec.Command("xsltproc", "--nonet", "--novalid", dirName+"tests-results.xsl", dirName+"test.xml").Output()
+	html, err := exec.Command("xsltproc", "--nonet", "--novalid", dirName+sc.GetTargetName()+"-tests-results.xsl", dirName+sc.GetTargetName()+"-test.xml").Output()
 	if err != nil {
 		panic(err)
 	}
 
-	f, err := os.Create(dirName + "/tests.html")
+	f, err := os.Create(dirName + sc.GetTargetName() + "-tests.html")
 	if err != nil {
 		panic(err)
 	}
@@ -97,12 +103,15 @@ func (sc StepContext) dumpTestHTML() {
 }
 
 func (sc StepContext) getOutputDir() string {
-	return fmt.Sprintf("_out/%d/%s/%s/", sc.Build.StartedAt, sc.Builder.Name, sc.GetTargetName())
+	return fmt.Sprintf("_out/%d/%s/", sc.Build.StartedAt, sc.Builder.Name)
 }
 
-func (sc StepContext) getTestFailures() []string {
-	pathName := sc.getOutputDir() + "test.xml"
-	return getTestFailuresPath(pathName)
+func (sc StepContext) getTestFailures() TestOutput {
+	pathName := sc.getOutputDir() + sc.GetTargetName() + "-test.xml"
+	return TestOutput{
+		Architecture: sc.GetTargetName(),
+		FailedTests: getTestFailuresPath(pathName),
+	}
 }
 
 func (sc StepContext) dump(filename string, stripDebug bool) {
@@ -118,7 +127,7 @@ func (sc StepContext) dump(filename string, stripDebug bool) {
 		logRaw = stripBuildbotDebug(logRaw)
 	}
 
-	f, err := os.Create(dirName + "/" + filename)
+	f, err := os.Create(dirName + filename)
 	if err != nil {
 		panic(err)
 	}
@@ -131,15 +140,15 @@ func (sc StepContext) dump(filename string, stripDebug bool) {
 }
 
 func (sc StepContext) dumpLog() {
-	sc.dump(string(sc.Step.Number)+".log", false)
+	sc.dump(fmt.Sprintf("%d.log", sc.Step.Number), false)
 }
 
 func (sc StepContext) dumpXML() {
-	sc.dump("test.xml", true)
+	sc.dump(sc.GetTargetName() + "-test.xml", true)
 }
 
 func (sc StepContext) dumpXSL() {
-	sc.dump("tests-results.xsl", true)
+	sc.dump(sc.GetTargetName() + "-tests-results.xsl", true)
 }
 
 func (sc StepContext) dumpCSS() {
