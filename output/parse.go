@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"os"
+	"os/exec"
 )
 
 func main() {
@@ -23,10 +24,11 @@ func main() {
 				if step.IsInProgress() {
 					inProgress = true
 				}
-				dumpTestOutput(builder, build, step)
+				dumpTestRawOutput(builder, build, step)
 
 				if step.IsXML() {
 					//testFailures = parseTestOutput(step)
+					dumpTestHTML(builder, build, step)
 				}
 /*
 				logs := getLogs(builder.BuilderId, build.Number, step.Number)
@@ -43,7 +45,8 @@ func main() {
 		//builderName := builder.Name
 	}
 }
-func dumpTestOutput(builder BuildersInner, build BuildsInner, step StepsInner) {
+
+func dumpTestRawOutput(builder BuildersInner, build BuildsInner, step StepsInner) {
 	if step.IsXSL() {
 		dumpXSL(builder, build, step)
 	}
@@ -55,15 +58,32 @@ func dumpTestOutput(builder BuildersInner, build BuildsInner, step StepsInner) {
 	if step.IsCSS() {
 		dumpCSS(builder, build, step)
 	}
+}
 
-	// exec xsltproc
+func dumpTestHTML(builder BuildersInner, build BuildsInner, step StepsInner) {
+	dirName := getOutputDir(builder, build, step)
+	html, err := exec.Command("xsltproc", "--nonet", "--novalid", dirName + "tests-results.xsl", dirName + "test.xml").Output()
+	if err != nil {
+		panic(err)
+	}
+
+	f, err := os.Create(dirName + "/tests.html")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	_, err = f.Write(html)
+	if err != nil {
+		panic(err)
+	}
 }
 
 func getOutputDir(builder BuildersInner, build BuildsInner, step StepsInner) string {
-	return fmt.Sprintf("_out/%s/%s/", builder.Name, step.GetTargetName())
+	return fmt.Sprintf("_out/%d/%s/%s/", build.StartedAt, builder.Name, step.GetTargetName())
 }
 
-func dump(builder BuildersInner, build BuildsInner, step StepsInner, filename string) {
+func dumpRaw(builder BuildersInner, build BuildsInner, step StepsInner, filename string) {
 	dirName := getOutputDir(builder, build, step)
 	err := os.MkdirAll(dirName, 0744)
 	if err != nil {
@@ -87,15 +107,15 @@ func dump(builder BuildersInner, build BuildsInner, step StepsInner, filename st
 }
 
 func dumpXML(builder BuildersInner, build BuildsInner, step StepsInner) {
-	dump(builder, build, step, "test.xml")
+	dumpRaw(builder, build, step, "test.xml")
 }
 
 func dumpXSL(builder BuildersInner, build BuildsInner, step StepsInner) {
-	dump(builder, build, step, "tests-results.xsl")
+	dumpRaw(builder, build, step, "tests-results.xsl")
 }
 
 func dumpCSS(builder BuildersInner, build BuildsInner, step StepsInner) {
-	dump(builder, build, step, "tests-results.css")
+	dumpRaw(builder, build, step, "tests-results.css")
 }
 
 // Buildbot adds some information about the command being executed.
