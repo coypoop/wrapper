@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"time"
 	"os"
 	"os/exec"
 )
@@ -13,6 +14,7 @@ func main() {
 	for _, builder := range builders {
 		builds := getBuilds(builder.BuilderId)
 		for _, build := range builds {
+			sourcestamps := getSourcestamps(build.BuildRequestId)
 			steps := getSteps(builder.BuilderId, build.Number)
 			var failedSteps []StepsInner
 			var inProgress bool
@@ -39,6 +41,8 @@ func main() {
 */
 			}
 			fmt.Printf("in progress: %v\n", inProgress)
+			fmt.Printf("failed steps: %v\n", failedSteps)
+			fmt.Printf("commit time: %v\n commit hash: %v\n", time.Unix(sourcestamps[1].CreatedAt, 0), sourcestamps[1].Revision)
 			fmt.Printf("failed steps: %v\n", failedSteps)
 			//startedAt := build.StartedAt
 		}
@@ -83,7 +87,7 @@ func getOutputDir(builder BuildersInner, build BuildsInner, step StepsInner) str
 	return fmt.Sprintf("_out/%d/%s/%s/", build.StartedAt, builder.Name, step.GetTargetName())
 }
 
-func dumpRaw(builder BuildersInner, build BuildsInner, step StepsInner, filename string) {
+func dump(builder BuildersInner, build BuildsInner, step StepsInner, filename string, stripDebug bool) {
 	dirName := getOutputDir(builder, build, step)
 	err := os.MkdirAll(dirName, 0744)
 	if err != nil {
@@ -92,7 +96,9 @@ func dumpRaw(builder BuildersInner, build BuildsInner, step StepsInner, filename
 
 	logs := getLogs(builder.BuilderId, build.Number, step.Number)
 	logRaw := getLogRaw(logs)
-	XML := stripBuildbotDebug(logRaw)
+	if stripDebug {
+		logRaw = stripBuildbotDebug(logRaw)
+	}
 
 	f, err := os.Create(dirName + "/" + filename)
 	if err != nil {
@@ -100,22 +106,26 @@ func dumpRaw(builder BuildersInner, build BuildsInner, step StepsInner, filename
 	}
 	defer f.Close()
 
-	_, err = f.Write(XML)
+	_, err = f.Write(logRaw)
 	if err != nil {
 		panic(err)
 	}
 }
 
+func dumpLog(builder BuildersInner, build BuildsInner, step StepsInner) {
+	dump(builder, build, step, string(step.Number) + ".log", false)
+}
+
 func dumpXML(builder BuildersInner, build BuildsInner, step StepsInner) {
-	dumpRaw(builder, build, step, "test.xml")
+	dump(builder, build, step, "test.xml", true)
 }
 
 func dumpXSL(builder BuildersInner, build BuildsInner, step StepsInner) {
-	dumpRaw(builder, build, step, "tests-results.xsl")
+	dump(builder, build, step, "tests-results.xsl", true)
 }
 
 func dumpCSS(builder BuildersInner, build BuildsInner, step StepsInner) {
-	dumpRaw(builder, build, step, "tests-results.css")
+	dump(builder, build, step, "tests-results.css", true)
 }
 
 // Buildbot adds some information about the command being executed.

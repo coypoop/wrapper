@@ -116,3 +116,61 @@ func getBuilders() []BuildersInner {
 
 	return builders.Inner
 }
+
+func getBuildRequests(buildrequestid int) []BuildRequestsInner {
+	var buildrequests BuildRequests
+
+	response, err := http.Get(fmt.Sprintf("http://localhost:8010/api/v2/buildrequests/%d", buildrequestid))
+	if err != nil {
+		panic("Failed to interact with buildbot REST API")
+	}
+	defer response.Body.Close()
+
+	responseData, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		panic("Failed to interact with buildbot REST API")
+	}
+
+	err = json.Unmarshal(responseData, &buildrequests)
+	if err != nil {
+		panic("Failed to unmarshal buildbot REST API - buildrequestid")
+	}
+
+	return buildrequests.Inner
+}
+
+func getBuildSets(buildsetid int) []BuildSetsInner {
+	var buildsets BuildSets
+
+	response, err := http.Get(fmt.Sprintf("http://localhost:8010/api/v2/buildsets/%d", buildsetid))
+	if err != nil {
+		panic("Failed to interact with buildbot REST API")
+	}
+	defer response.Body.Close()
+
+	responseData, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		panic("Failed to interact with buildbot REST API")
+	}
+
+	err = json.Unmarshal(responseData, &buildsets)
+	if err != nil {
+		panic("Failed to unmarshal buildbot REST API - buildsetid")
+	}
+
+	return buildsets.Inner
+}
+
+func getSourcestamps(buildrequestid int) []Sourcestamps {
+	buildrequests := getBuildRequests(buildrequestid)
+	var sourcestamps []Sourcestamps
+
+	for _, buildrequest := range buildrequests {
+		buildsets := getBuildSets(buildrequest.BuildSetId)
+		for _, buildset := range buildsets {
+			sourcestamps = append(sourcestamps, buildset.Sourcestamps...)
+		}
+	}
+
+	return sourcestamps
+}
