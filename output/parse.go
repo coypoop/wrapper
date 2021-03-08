@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"html/template"
 	"os"
 	"os/exec"
 	"strings"
@@ -18,9 +19,32 @@ type StepContext struct {
 type TestOutput struct {
 	Architecture string
 	FailedTests  []string
+	TestsURL     template.URL
+}
+
+type StepOutput struct {
+	Name string
+	URL  template.URL
+}
+
+type PageData struct {
+	Builds []Build
+}
+
+type Build struct {
+	ProgressIndicator string
+	Buildtype         string
+	CommitDate        string
+	FailedStepsMetric string
+	FailedTestsTotal  string
+	FailedSteps       []StepOutput
+	NewTestFailures   []TestOutput
+	NewTestSuccesses  []TestOutput
+	TotalTestResults  []TestOutput
 }
 
 func main() {
+	buildsParsed := []Build{}
 	builders := getBuilders()
 	for _, builder := range builders {
 		firstTestResult := true
@@ -29,8 +53,8 @@ func main() {
 		for _, build := range builds {
 			sourcestamps := getSourcestamps(build.BuildRequestId)
 			steps := getSteps(builder.BuilderId, build.Number)
-			var failedStepNames []string
-			var failedTests []TestOutput
+			var failedSteps []StepOutput
+			var failedTests, newTestFailures, newTestSuccesses []TestOutput
 			var inProgress bool
 			for _, step := range steps {
 				sc := StepContext{
@@ -40,7 +64,10 @@ func main() {
 				}
 				sc.dumpLog()
 				if sc.IsFailed() {
-					failedStepNames = append(failedStepNames, step.Name)
+					failedSteps = append(failedSteps, StepOutput{
+						Name: step.Name,
+						URL:  template.URL(fmt.Sprintf("%s%d.log", sc.getExternalDir(), sc.Step.Number)),
+					})
 				}
 
 				if sc.IsInProgress() {
@@ -61,24 +88,56 @@ func main() {
 				*/
 			}
 
-			fmt.Printf("----------------------------------------\n")
-			fmt.Printf("in progress: %v\n", inProgress)
-			fmt.Printf("failed steps: %v\n", failedStepNames)
-			fmt.Printf("commit time: %v\n commit hash: %v\n", time.Unix(sourcestamps[1].CreatedAt, 0), sourcestamps[1].Revision)
-			fmt.Printf("failed steps: %v\n", failedStepNames)
-			fmt.Printf("failed test cases: %v\n", failedTests)
+			var progressIndicator string
+			if inProgress {
+				progressIndicator = "yellow"
+			} else if len(failedSteps) != 0 {
+				progressIndicator = "red"
+			} else {
+				progressIndicator = "green"
+			}
+
 			if !firstTestResult {
-				newFail, newSuccess := compareTests(prevFailedTests, failedTests)
-				fmt.Printf("New fail: %v\nNew success: %v\n", newFail, newSuccess)
+				newTestFailures, newTestSuccesses = compareTests(prevFailedTests, failedTests)
 			}
 
 			firstTestResult = false
 			prevFailedTests = failedTests
 
+			buildsParsed = append(buildsParsed, Build{
+				ProgressIndicator: progressIndicator,
+				Buildtype:         builder.Name,
+				CommitDate:        time.Unix(sourcestamps[1].CreatedAt, 0).String(),
+				FailedStepsMetric: fmt.Sprintf("%d/%d", len(failedSteps), len(steps)),
+				FailedTestsTotal:  fmt.Sprintf("%d", len(failedTests)),
+				FailedSteps:       failedSteps,
+				NewTestFailures:   newTestFailures,
+				NewTestSuccesses:  newTestSuccesses,
+				TotalTestResults:  failedTests,
+			})
+			/*
+				fmt.Printf("----------------------------------------\n")
+				fmt.Printf("in progress: %v\n", inProgress)
+				fmt.Printf("failed steps: %v\n", failedSteps)
+				fmt.Printf("commit time: %v\n commit hash: %v\n", time.Unix(sourcestamps[1].CreatedAt, 0), sourcestamps[1].Revision)
+				fmt.Printf("failed steps: %v\n", failedSteps)
+				fmt.Printf("failed test cases: %v\n", failedTests)
+			*/
 			//startedAt := build.StartedAt
 		}
 		//builderName := builder.Name
 	}
+	var tpl bytes.Buffer
+	tmpl := template.Must(template.ParseFiles("index.html"))
+
+	data := PageData{
+		Builds: buildsParsed,
+	}
+	err := tmpl.Execute(&tpl, data)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("%s", tpl.String())
 }
 
 func compareTests(a, b []TestOutput) ([]TestOutput, []TestOutput) {
@@ -92,10 +151,12 @@ func compareTests(a, b []TestOutput) ([]TestOutput, []TestOutput) {
 				added = append(added, TestOutput{
 					Architecture: newTestOutput.Architecture,
 					FailedTests:  addedTestCases,
+					TestsURL:     newTestOutput.TestsURL,
 				})
 				removed = append(removed, TestOutput{
 					Architecture: newTestOutput.Architecture,
 					FailedTests:  removedTestCases,
+					TestsURL:     newTestOutput.TestsURL,
 				})
 			}
 		}
@@ -155,11 +216,21 @@ func (sc StepContext) getOutputDir() string {
 	return fmt.Sprintf("_out/%d/%s/", sc.Build.StartedAt, sc.Builder.Name)
 }
 
+func (sc StepContext) getExternalDir() string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		panic(err)
+	}
+	return fmt.Sprintf("file://%s/_out/%d/%s/", cwd, sc.Build.StartedAt, sc.Builder.Name)
+}
+
 func (sc StepContext) getTestFailures() TestOutput {
-	pathName := sc.getOutputDir() + sc.GetTargetName() + "-test.xml"
+	fileName := sc.GetTargetName() + "-test.xml"
+	outFilename := sc.GetTargetName() + "-tests.html"
 	return TestOutput{
+		TestsURL:     template.URL(sc.getExternalDir() + outFilename),
 		Architecture: sc.GetTargetName(),
-		FailedTests:  getTestFailuresPath(pathName),
+		FailedTests:  getTestFailuresPath(sc.getOutputDir() + fileName),
 	}
 }
 
