@@ -32,15 +32,20 @@ type PageData struct {
 }
 
 type Build struct {
-	ProgressIndicator string
-	Buildtype         string
-	CommitDate        string
-	FailedStepsMetric string
-	FailedTestsTotal  string
-	FailedSteps       []StepOutput
-	NewTestFailures   []TestOutput
-	NewTestSuccesses  []TestOutput
-	TotalTestResults  []TestOutput
+	ProgressIndicator   string
+	Buildtype           string
+	CommitDate          string
+	CommitRevision      template.URL
+	FailedStepsMetric   string
+	FailedTestsTotal    string
+	HasFailedSteps      bool
+	FailedSteps         []StepOutput
+	HasNewTestFailures  bool
+	NewTestFailures     []TestOutput
+	HasNewTestSuccesses bool
+	NewTestSuccesses    []TestOutput
+	HasTestFailures     bool
+	TotalTestResults    []TestOutput
 }
 
 func main() {
@@ -76,7 +81,10 @@ func main() {
 				sc.dumpTestRawOutput()
 
 				if sc.IsXML() {
-					failedTests = append(failedTests, sc.getTestFailures())
+					failures := sc.getTestFailures()
+					if len(failures.FailedTests) > 0 {
+						failedTests = append(failedTests, sc.getTestFailures())
+					}
 					sc.dumpTestHTML()
 				}
 				/*
@@ -107,13 +115,19 @@ func main() {
 			buildsParsed = append(buildsParsed, Build{
 				ProgressIndicator: progressIndicator,
 				Buildtype:         builder.Name,
-				CommitDate:        time.Unix(sourcestamps[1].CreatedAt, 0).String(),
-				FailedStepsMetric: fmt.Sprintf("%d/%d", len(failedSteps), len(steps)),
-				FailedTestsTotal:  fmt.Sprintf("%d", len(failedTests)),
-				FailedSteps:       failedSteps,
-				NewTestFailures:   newTestFailures,
-				NewTestSuccesses:  newTestSuccesses,
-				TotalTestResults:  failedTests,
+				// XXX hacky way to find src and not xsrc
+				CommitDate:          time.Unix(sourcestamps[1].CreatedAt, 0).String(),
+				CommitRevision:      template.URL(sourcestamps[1].Revision),
+				FailedStepsMetric:   fmt.Sprintf("%d/%d", len(failedSteps), len(steps)),
+				FailedTestsTotal:    fmt.Sprintf("%d", len(failedTests)),
+				HasFailedSteps:      len(failedSteps) > 0,
+				FailedSteps:         failedSteps,
+				HasNewTestFailures:  len(newTestFailures) > 0,
+				NewTestFailures:     newTestFailures,
+				HasNewTestSuccesses: len(newTestSuccesses) > 0,
+				NewTestSuccesses:    newTestSuccesses,
+				HasTestFailures:     len(failedTests) > 0,
+				TotalTestResults:    failedTests,
 			})
 			/*
 				fmt.Printf("----------------------------------------\n")
@@ -148,16 +162,20 @@ func compareTests(a, b []TestOutput) ([]TestOutput, []TestOutput) {
 			if newTestOutput.Architecture == prevTestOutput.Architecture {
 				addedTestCases := difference(prevTestOutput.FailedTests, newTestOutput.FailedTests)
 				removedTestCases := difference(newTestOutput.FailedTests, prevTestOutput.FailedTests)
-				added = append(added, TestOutput{
-					Architecture: newTestOutput.Architecture,
-					FailedTests:  addedTestCases,
-					TestsURL:     newTestOutput.TestsURL,
-				})
-				removed = append(removed, TestOutput{
-					Architecture: newTestOutput.Architecture,
-					FailedTests:  removedTestCases,
-					TestsURL:     newTestOutput.TestsURL,
-				})
+				if len(addedTestCases) > 0 {
+					added = append(added, TestOutput{
+						Architecture: newTestOutput.Architecture,
+						FailedTests:  addedTestCases,
+						TestsURL:     newTestOutput.TestsURL,
+					})
+				}
+				if len(removedTestCases) > 0 {
+					removed = append(removed, TestOutput{
+						Architecture: newTestOutput.Architecture,
+						FailedTests:  removedTestCases,
+						TestsURL:     newTestOutput.TestsURL,
+					})
+				}
 			}
 		}
 	}

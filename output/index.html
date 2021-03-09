@@ -1,49 +1,208 @@
-<html><body>
-<table>
+<!DOCTYPE html>
+
+<html>
+<head>
+<!-- XXX get rid of base href -->
+    <base href="http://www.netbsd.org">
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <!-- Copyright (c) 1994-2021
+	 The NetBSD Foundation, Inc.  ALL RIGHTS RESERVED. -->
+    <link rev="made" href="mailto:www@NetBSD.org">
+    <link rel="shortcut icon" href="//www.NetBSD.org/favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="//www.NetBSD.org/global.css" type="text/css">
+    <link rel="stylesheet" href="//www.NetBSD.org/donations/thermo/fundraiser.css" type="text/css">
+    <link rel="alternate" type="application/rss+xml" title="NetBSD news"
+	  href="//www.NetBSD.org/changes/rss-netbsd.xml">
+    <title>The NetBSD Project</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, minimum-scale=1.0">
+  </head>
+
+  <body class="website"><div class="webpage">
+    <!-- For non-visual user agents: -->
+    <div id="top"><a href="#mainContent" id="skiplink" tabindex="1">Skip to main content.</a></div>
+
+      <!-- mobile menu icon -->
+      <input id="hamburger" type="checkbox"/>
+      <label class="menuicon" for="hamburger"><span></span><span></span><span></span></label>
+
+      <div id="navBar" role="navigation">
+      <div id="centralHeader">
+	<div id="logo">
+		<a href="//www.NetBSD.org/"><img id="projectLogo" src="//www.NetBSD.org/images/NetBSD-smaller-tb.png" alt="" height="120"/></a>
+	</div>
+	<a href="//www.NetBSD.org/donations/#how-to-donate">
+		<div id="fundraiser">
+			<br />
+			<div id="fundraiser-amount">
+				<div id="fundraiser-raised"></div>
+			</div>
+		</div>
+  	</a>
+        </div>
+	<span class="doNotDisplay">
+          Navigation:
+        </span>
+	<ul>
+	<li><a href="//www.NetBSD.org/">
+		  Home</a><ul>
+	<li><a href="//www.NetBSD.org/changes/">
+		    Recent changes</a></li>
+	<li><a href="//blog.NetBSD.org/">
+		    NetBSD blog</a></li>
+	<li><a href="//www.NetBSD.org/gallery/presentations/">
+		    Presentations</a></li>
+	</ul>
+	</li>
+	<li>
+	<a href="//www.NetBSD.org/about/">
+		  About</a><ul>
+	<li><a href="//www.NetBSD.org/people/developers.html">
+		    Developers</a></li>
+	<li><a href="//www.NetBSD.org/gallery/">
+		    Gallery</a></li>
+	<li><a href="//wiki.NetBSD.org/ports/">
+		    Ports</a></li>
+	<li><a href="http://www.pkgsrc.se/">
+		    Packages</a></li>
+	</ul>
+	</li>
+	<li>
+	<a href="//www.NetBSD.org/docs/">
+		  Documentation</a><ul>
+	<li><a href="//www.NetBSD.org/docs/misc/index.html">
+		    FAQ &amp; HOWTOs</a></li>
+	<li><a href="//www.NetBSD.org/docs/guide/en/">
+		    The Guide</a></li>
+	<li><a href="https://man.NetBSD.org/">
+		    Manual pages</a></li>
+	<li><a href="//wiki.NetBSD.org/">
+		    Wiki</a></li>
+	</ul>
+	</li>
+	<li>
+	<a href="//www.NetBSD.org/support/">
+		  Support</a><ul>
+	<li><a href="//www.NetBSD.org/community/">
+		    Community</a></li>
+	<li><a href="//www.NetBSD.org/mailinglists/">
+		    Mailing lists</a></li>
+	<li><a href="//www.NetBSD.org/support/send-pr.html">
+		    Bug reports</a></li>
+	<li><a href="//www.NetBSD.org/support/security/">
+		    Security</a></li>
+	</ul>
+	</li>
+	<li>
+	<a href="//www.NetBSD.org/developers/">
+		  Developers</a><ul>
+	<li><a href="http://cvsweb.NetBSD.org/">
+		    CVSWeb</a></li>
+	<li><a href="//anonhg.NetBSD.org/">
+		    Mercurial</a></li>
+	<li><a href="//nxr.NetBSD.org/">
+		    Cross-reference</a></li>
+	<li><a href="//releng.NetBSD.org/">
+		    Release engineering</a></li>
+	<li><a href="//wiki.NetBSD.org/projects/">
+		    Projects list</a></li>
+	</ul>
+	</li>
+	</ul>
+      </div>
+<div id="content">
+<div id="mainContent">
+<div class="fullWidth">
+<h1>Summary of daily snapshot builds</h1>
+<p>
+The dates under each tag below are links to the reports for the
+builds done for a checkout of that tag at the time specified.
+</p>
+<p>
+Snapshots can be downloaded from
+<a href="//nycdn.NetBSD.org/pub/NetBSD-daily/">
+nycdn.NetBSD.org/pub/NetBSD-daily/</a>
+</p>
+<hr>
+<table class="build-results">
 <thead>
 <td>Status</td>
 <td>Build configuration</td>
-<td>Expand</td>
 <td>Commit date</td>
 <td>Failed build steps</td>
 <td>New test failures</td>
 </thead>
 {{range .Builds}}
-<tr>
-<td>{{.ProgressIndicator}}</td>
-<td>{{.Buildtype}}</td>
-<td>[+]</td>
-<td>{{.CommitDate}}</td>
-<td>{{.FailedStepsMetric}}</td>
-<td>{{.FailedTestsTotal}}</td>
-</tr>
-<tr><td colspan="6">
-<p>
-Failed steps: {{range .FailedSteps}} <a href="{{.URL}}">{{.Name}}</a> {{end}}
-</p>
-New failing tests:
-<p>
-	{{range .NewTestFailures}}
-		<p><a href="{{.TestsURL}}">
-		{{.Architecture}}: {{range $testFailure := .FailedTests}} {{$testFailure}} {{end}}
-		</a></p>
+	<tr>
+	<td>{{.ProgressIndicator}}</td>
+	<td>{{.Buildtype}}</td>
+	<td><a href="https://github.com/NetBSD/src/commit/{{.CommitRevision}}">{{.CommitDate}}</a></td>
+	<td>{{.FailedStepsMetric}}</td>
+	<td>{{.FailedTestsTotal}}</td>
+	</tr>
+	{{if or (.HasFailedSteps) (.HasNewTestFailures) (.HasNewTestSuccesses) (.HasTestFailures)}}
+		<tr><td colspan="6">
+		{{if .HasFailedSteps}}
+			<p>
+			Failed steps: {{range $index, $failedStep := .FailedSteps}}{{if $index}},{{end}} <a href="{{$failedStep.URL}}">{{$failedStep.Name}}</a> {{end}}
+			</p>
+		{{end}}
+		{{if .HasNewTestFailures}}
+			<p>
+			New failing tests:
+				{{range .NewTestFailures}}
+					<p><a href="{{.TestsURL}}">
+					{{.Architecture}}: {{range $testFailure := .FailedTests}} {{$testFailure}} {{end}}
+					</a></p>
+				{{end}}
+			</p>
+		{{end}}
+		{{if .HasNewTestSuccesses}}
+			<p>
+			No longer failing:
+				{{range .NewTestSuccesses}}
+					<p><a href="{{.TestsURL}}">
+					{{.Architecture}}: {{range $testFailure := .FailedTests}} {{$testFailure}} {{end}}
+					</a></p>
+				{{end}}
+			</p>
+		{{end}}
+		{{if .HasTestFailures}}
+			<p>
+			Test results:
+				{{range .TotalTestResults}}
+					<p><a href="{{.TestsURL}}">
+					{{.Architecture}}: {{range $testFailure := .FailedTests}} {{$testFailure}} {{end}}
+					</a></p>
+				{{end}}
+			</p>
+		{{end}}
+		</td></tr>
 	{{end}}
-</p>
-<p>
-No longer failing:
-	{{range .NewTestSuccesses}}
-		<p><a href="{{.TestsURL}}">
-		{{.Architecture}}: {{range $testFailure := .FailedTests}} {{$testFailure}} {{end}}
-		</a></p>
-	{{end}}
-</p>
-<p>
-Test results:
-	{{range .TotalTestResults}}
-		<p><a href="{{.TestsURL}}">
-		{{.Architecture}}: {{range $testFailure := .FailedTests}} {{$testFailure}} {{end}}
-		</a></p>
-	{{end}}
-</p>
-</td></tr>
 {{end}}
+</table>
+
+
+</div>
+</div>
+</div>
+
+    <div class="rowOfBoxes">
+      <div id="footer">
+        <div id="footerContent">
+          <span class="footfeed">
+            <a href="//www.NetBSD.org/cgi-bin/feedback.cgi">
+              Contact</a> |
+          </span>
+          <span class="footcopy"><a href="//www.NetBSD.org/about/disclaimer.html">
+            Disclaimer</a> |
+            <span class="copyright">
+              Copyright &copy; 1994-2021 The NetBSD Foundation, Inc.
+            </span>
+            ALL
+            RIGHTS RESERVED. <br /> NetBSD<sup>&reg;</sup> is a registered
+            trademark of The NetBSD Foundation, Inc.
+          </span>
+        </div>
+      </div>
+    </div>
+  </div></body>
