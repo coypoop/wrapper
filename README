@@ -1,0 +1,20 @@
+Setup:
+
+- cd output; go build
+- Block incoming connections outside net
+- Setup workers:
+buildbot-worker-3.8 create-worker -r worker localhost worker1 MYPASSWORD
+cd worker
+twistd-3.8 -ny buildbot.tac
+..
+
+- Setup master:
+buildbot-3.8 create-master -r master
+copy over master.cfg and generate_builders.py to master/
+edit master.cfg with your worker passwords, URL
+twistd-3.8  -ny buildbot.tac
+..
+
+setup cronjob every ~10 minutes to run:
+./output/buildbot-static-go
+and rsync _out/ to a public web server.
