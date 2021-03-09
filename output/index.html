@@ -2,7 +2,55 @@
 
 <html>
 <head>
-<!-- XXX get rid of base href -->
+<!-- XXX get rid of base href, style -->
+<style>
+table.build-results > tbody > tr > td {
+  text-align: left !important;
+}
+table.build-results > tbody > tr.build-details {
+  background-color: rgba(0,0,0,2%);
+}
+
+table.build-results > tbody > tr > td > span {
+  height: 12px;
+  width: 12px;
+  margin-right: 12px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+table.build-results > tbody > tr > td > span {
+  background-color: #8f8;
+}
+
+table.build-results > tbody > tr > td > span.inProgress {
+  transform: scale(1);
+  animation: pulse 2s infinite;
+  background-color: #ff8;
+}
+
+table.build-results > tbody > tr > td > span.Fail {
+  background-color: #f88;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0,0,0,0.5);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 4px rgba(0,0,0,0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(0,0,0,0);
+  }
+}
+
+</style>
     <base href="http://www.netbsd.org">
     <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
     <!-- Copyright (c) 1994-2021
@@ -125,7 +173,6 @@ nycdn.NetBSD.org/pub/NetBSD-daily/</a>
 <hr>
 <table class="build-results">
 <thead>
-<td>Status</td>
 <td>Build configuration</td>
 <td>Commit date</td>
 <td>Failed build steps</td>
@@ -133,17 +180,16 @@ nycdn.NetBSD.org/pub/NetBSD-daily/</a>
 </thead>
 {{range .Builds}}
 	<tr>
-	<td>{{.ProgressIndicator}}</td>
-	<td>{{.Buildtype}}</td>
+	<td><span class="dot {{if .InProgress}}inProgress{{end}} {{if .HasFailedSteps}}Fail{{end}}" title="{{if .InProgress}}build is in progress{{else}}build is completed{{end}}{{if .HasFailedSteps}}, failing status{{end}}"></span>{{.Buildtype}}</td>
 	<td><a href="https://github.com/NetBSD/src/commit/{{.CommitRevision}}">{{.CommitDate}}</a></td>
 	<td>{{.FailedStepsMetric}}</td>
 	<td>{{.FailedTestsTotal}}</td>
 	</tr>
 	{{if or (.HasFailedSteps) (.HasNewTestFailures) (.HasNewTestSuccesses) (.HasTestFailures)}}
-		<tr><td colspan="6">
+		<tr class="build-details"><td colspan="6">
 		{{if .HasFailedSteps}}
 			<p>
-			Failed steps: {{range $index, $failedStep := .FailedSteps}}{{if $index}},{{end}} <a href="{{$failedStep.URL}}">{{$failedStep.Name}}</a> {{end}}
+			Failed steps: {{range $index, $failedStep := .FailedSteps}}{{if $index}},{{end}} <a href="{{$failedStep.URL}}">{{$failedStep.Name}}</a>{{end}}
 			</p>
 		{{end}}
 		{{if .HasNewTestFailures}}
@@ -171,7 +217,8 @@ nycdn.NetBSD.org/pub/NetBSD-daily/</a>
 			Test results:
 				{{range .TotalTestResults}}
 					<p><a href="{{.TestsURL}}">
-					{{.Architecture}}: {{range $testFailure := .FailedTests}} {{$testFailure}} {{end}}
+						{{.Architecture}}:
+						{{range $index, $testFailure := .FailedTests}}{{if (lt $index 3)}}{{if $index}}, {{end}}{{$testFailure}}{{end}}{{if (eq $index 4)}}...{{end}}{{end}}
 					</a></p>
 				{{end}}
 			</p>

@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"os"
 	"os/exec"
+	"sort"
 	"strings"
 	"time"
 )
@@ -32,8 +33,9 @@ type PageData struct {
 }
 
 type Build struct {
-	ProgressIndicator   string
+	InProgress          bool
 	Buildtype           string
+	CommitUnix          int64
 	CommitDate          string
 	CommitRevision      template.URL
 	FailedStepsMetric   string
@@ -56,7 +58,14 @@ func main() {
 		var prevFailedTests []TestOutput
 		builds := getBuilds(builder.BuilderId)
 		for _, build := range builds {
-			sourcestamps := getSourcestamps(build.BuildRequestId)
+			sourcestamp := getSrcSourcestamp(build.BuildRequestId)
+			commitDate := time.Unix(sourcestamp.CreatedAt, 0)
+
+			// Don't show builds that are too old
+			if commitDate.Add(7 * 24 * 60 * time.Minute).Before(time.Now()) {
+				break
+			}
+
 			steps := getSteps(builder.BuilderId, build.Number)
 			var failedSteps []StepOutput
 			var failedTests, newTestFailures, newTestSuccesses []TestOutput
@@ -96,15 +105,6 @@ func main() {
 				*/
 			}
 
-			var progressIndicator string
-			if inProgress {
-				progressIndicator = "yellow"
-			} else if len(failedSteps) != 0 {
-				progressIndicator = "red"
-			} else {
-				progressIndicator = "green"
-			}
-
 			if !firstTestResult {
 				newTestFailures, newTestSuccesses = compareTests(prevFailedTests, failedTests)
 			}
@@ -113,11 +113,11 @@ func main() {
 			prevFailedTests = failedTests
 
 			buildsParsed = append(buildsParsed, Build{
-				ProgressIndicator: progressIndicator,
-				Buildtype:         builder.Name,
-				// XXX hacky way to find src and not xsrc
-				CommitDate:          time.Unix(sourcestamps[1].CreatedAt, 0).String(),
-				CommitRevision:      template.URL(sourcestamps[1].Revision),
+				InProgress:          inProgress,
+				Buildtype:           builder.Name,
+				CommitUnix:          commitDate.Unix(),
+				CommitDate:          commitDate.String(),
+				CommitRevision:      template.URL(sourcestamp.Revision),
 				FailedStepsMetric:   fmt.Sprintf("%d/%d", len(failedSteps), len(steps)),
 				FailedTestsTotal:    fmt.Sprintf("%d", len(failedTests)),
 				HasFailedSteps:      len(failedSteps) > 0,
@@ -145,13 +145,24 @@ func main() {
 	tmpl := template.Must(template.ParseFiles("index.html"))
 
 	data := PageData{
-		Builds: buildsParsed,
+		Builds: sortBuilds(buildsParsed),
 	}
 	err := tmpl.Execute(&tpl, data)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("%s", tpl.String())
+}
+
+func sortBuilds(input []Build) []Build {
+	sort.Slice(input, func(i, j int) bool {
+		if input[i].Buildtype == input[j].Buildtype {
+			return input[i].CommitUnix > input[j].CommitUnix
+		}
+		return input[i].Buildtype < input[j].Buildtype
+	})
+
+	return input
 }
 
 func compareTests(a, b []TestOutput) ([]TestOutput, []TestOutput) {
@@ -235,11 +246,7 @@ func (sc StepContext) getOutputDir() string {
 }
 
 func (sc StepContext) getExternalDir() string {
-	cwd, err := os.Getwd()
-	if err != nil {
-		panic(err)
-	}
-	return fmt.Sprintf("file://%s/_out/%d/%s/", cwd, sc.Build.StartedAt, sc.Builder.Name)
+	return fmt.Sprintf("%d/%s/", sc.Build.StartedAt, sc.Builder.Name)
 }
 
 func (sc StepContext) getTestFailures() TestOutput {

@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 )
 
 func getLogRaw(logs []LogsInner) []byte {
@@ -163,6 +164,15 @@ func getBuildSets(buildsetid int) []BuildSetsInner {
 	}
 
 	return buildsets.Inner
+}
+
+func getSrcSourcestamp(buildrequestid int) Sourcestamps {
+	for _, sourcestamp := range getSourcestamps(buildrequestid) {
+		if !strings.Contains(sourcestamp.Codebase, "xsrc") {
+			return sourcestamp
+		}
+	}
+	panic("Didn't find src sourcestamp")
 }
 
 func getSourcestamps(buildrequestid int) []Sourcestamps {
