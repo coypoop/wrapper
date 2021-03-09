@@ -1,3 +1,6 @@
+Requirements:
+qemu, gxemul, py-anita, py-buildbot* packages.
+
 Setup:
 
 - cd output; go build
