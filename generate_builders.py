@@ -299,7 +299,7 @@ def to_builder(targets, buildtype, branchname):
                         name="testing " + build_name + " " + target_name(target),
                         description="testing " + build_name + " " + target_name(target),
                         descriptionDone="testing done",
-                        command="anita test --memory-size 512M --workdir workdir-tests/ $HOME/releasedir/" + build_name + "/$(date -r $(cd ../src; git show -s --format=%ct) +%Y%m%d%H%MZ)/" + target_name(target) + "/",
+                        command="anita test --memory-size 512M --workdir workdir-tests/ $HOME/releasedir/" + build_name + "/$(date -r $(cd ../src; git show -s --format=%ct) +%Y%m%d%H%MZ)/" + target_name(target) + "/" + "| true",
                         timeout=6000,
                     ))
             factory.addStep(steps.ShellCommand(
@@ -341,17 +341,22 @@ def to_builder(targets, buildtype, branchname):
                               tags=tags,
                               ), build_name
 
-def generate_stable_builders():
+def generate_netbsd_8_builders():
     netbsd_8_builder = to_builder(
             [target for target in targets if is_8_target(target)],
             buildtype="",
             branchname="netbsd-8")
+
+    return [netbsd_8_builder]
+
+
+def generate_netbsd_9_builders():
     netbsd_9_builder = to_builder(
             [target for target in targets if is_9_target(target)],
             buildtype="",
             branchname="netbsd-9")
 
-    return [netbsd_8_builder, netbsd_9_builder]
+    return [netbsd_9_builder]
 
 
 def generate_head_builders():
