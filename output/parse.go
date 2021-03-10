@@ -151,7 +151,16 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("%s", tpl.String())
+	f, err := os.Create("_out/index.html")
+	if err != nil {
+		panic(err)
+	}
+	defer f.Close()
+
+	_, err = f.WriteString(tpl.String())
+	if err != nil {
+		panic(err)
+	}
 }
 
 func sortBuilds(input []Build) []Build {
