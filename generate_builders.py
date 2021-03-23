@@ -272,6 +272,7 @@ def to_builder(targets, buildtype, branchname):
                     descriptionDone="build done",
                     command=build_command(target, buildtype),
                     locks=[build_lock.access('exclusive')],
+                    timeout=12000,
                     workdir="build"
                 ))
 
